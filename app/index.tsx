@@ -12,13 +12,7 @@ export default function Index() {
 
   const sheetRef = useRef<BottomSheet>(null);
 
-  const data = useMemo(
-    () =>
-      Array(50)
-        .fill(0)
-        .map((_, index) => `index-${index}`),
-    []
-  );
+  const data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
 
   const renderItem = useCallback(
     (item: any) => (
@@ -41,8 +35,11 @@ export default function Index() {
         <SafeAreaView style={styles.contentContainer}>
           <Text style={styles.bottomSheetHeadline}
           >
-            KENDRICK WAS HERE
+            Title
           </Text>
+          <BottomSheetScrollView>
+            {data.map(renderItem)}
+          </BottomSheetScrollView>
         </SafeAreaView>
       </BottomSheet>
     </GestureHandlerRootView>
