@@ -8,7 +8,9 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
   // BottomSheet properties
-  const snapPoints: string[] = ["10%", "50%", "90%"];
+  const snapPoints: string[] = ["13%", "50%", "90%"];
+
+  // const snapPoints = useMemo(() => ["13%", "50%", "90%"], []);
 
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -31,11 +33,11 @@ export default function Index() {
         index={0}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
+        
       >
         <SafeAreaView style={styles.contentContainer}>
-          <Text style={styles.bottomSheetHeadline}
-          >
-            Title
+          <Text style={styles.bottomSheetHeadline}>
+            Near You{"\n"}
           </Text>
           <BottomSheetScrollView>
             {data.map(renderItem)}
@@ -45,14 +47,14 @@ export default function Index() {
     </GestureHandlerRootView>
   );
 }
-const styles = StyleSheet.create( {
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 200
   },
   map: {
     width: '100%',
-    height: '100%',
+    height: '87%',
   },
   itemContainer: {
     padding: 6,
@@ -66,6 +68,7 @@ const styles = StyleSheet.create( {
     padding: 20,
   },
   bottomSheetHeadline: {
-    fontSize: 24
+    fontSize: 24,
+    paddingTop: 0,
   }
 });
