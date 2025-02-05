@@ -1,16 +1,31 @@
 import { Text, View, StyleSheet } from "react-native";
-import React, { useRef, useCallback, useMemo } from 'react';
-import MapView from 'react-native-maps';
+import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
+import MapView, { PROVIDER_DEFAULT} from 'react-native-maps';
+import * as Location from 'expo-location';
+import axios from 'axios';
 
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
-  // BottomSheet properties
-  const snapPoints: string[] = ["13%", "50%", "90%"];
 
-  // const snapPoints = useMemo(() => ["13%", "50%", "90%"], []);
+  // BottomSheet properties
+  const snapPoints = useMemo(() => ["13%", "50%", "90%"], []);
+
+  // Map properties
+  const [location, setLocation] = useState<Location.LocationObject>({
+    coords: {
+      latitude: 37.78825,
+      longitude: -122.4324,
+      altitude: null,
+      accuracy: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: null
+    },
+    timestamp: Date.now()
+  });
 
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -24,10 +39,33 @@ export default function Index() {
     ),
     []
   );
+
+  const [origin, setOrigin] = useState(null);
+
+  //Kendrick Ng
+  useEffect(() => {
+    async function getCurrentLocation(){
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status == 'granted') {
+        let loc = await Location.getCurrentPositionAsync({});
+        setLocation(loc);
+      }
+    }
+    getCurrentLocation();
+  }, []);
   
   return (
     <GestureHandlerRootView>
-      <MapView style={styles.map}></MapView>
+      <MapView 
+        style={styles.map}
+        provider={PROVIDER_DEFAULT}
+        initialRegion={{
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 1,
+          longitudeDelta: 1,
+        }}
+      />
       <BottomSheet
         ref={sheetRef}
         index={0}
