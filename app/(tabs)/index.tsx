@@ -1,31 +1,18 @@
-import { Text, View, StyleSheet } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity } from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { PROVIDER_DEFAULT} from 'react-native-maps';
 import * as Location from 'expo-location';
 import axios from 'axios';
 
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import Icon from '@expo/vector-icons/FontAwesome';
 
 export default function Index() {
 
   // BottomSheet properties
-  const snapPoints = useMemo(() => ["13%", "50%", "90%"], []);
-
-  // Map properties
-  const [location, setLocation] = useState<Location.LocationObject>({
-    coords: {
-      latitude: 37.78825,
-      longitude: -122.4324,
-      altitude: null,
-      accuracy: null,
-      altitudeAccuracy: null,
-      heading: null,
-      speed: null
-    },
-    timestamp: Date.now()
-  });
+  const snapPoints = useMemo(() => ["8%", "50%", "90%"], []);
 
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -40,38 +27,101 @@ export default function Index() {
     []
   );
 
-  const [origin, setOrigin] = useState(null);
+  // Map properties initialization
+  const mapRef = useRef<MapView | null>(null);
 
-  //Kendrick Ng
+  const [location, setLocation] = useState<Location.LocationObject>({
+    coords: {
+      latitude: 37.78825,
+      longitude: -122.4324,
+      altitude: null,
+      accuracy: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: null
+    },
+    timestamp: Date.now()
+  });
+
+  const [initialRegion, setInitialRegion] = useState({
+      latitude: 37.78825,
+      longitude: -122.4324,
+      latitudeDelta: 0.1,
+      longitudeDelta: 0.1,
+  });
+
+
+  //Get location permissions and set region
   useEffect(() => {
-    async function getCurrentLocation(){
+    const getCurrentLocation = async() => {
       let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status == 'granted') {
-        let loc = await Location.getCurrentPositionAsync({});
-        setLocation(loc);
+      if (status !== 'granted') {
+        return;
       }
+      let loc = await Location.getCurrentPositionAsync({});
+      setLocation(loc);
+
+      setInitialRegion ({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        latitudeDelta: 0.03,
+        longitudeDelta: 0.03,
+      });
+
     }
     getCurrentLocation();
   }, []);
-  
+
+  //Reset region for button
+  const resetLocation = () => {
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(initialRegion, 1000);
+    }
+  };
+
+  //UI Setup
   return (
     <GestureHandlerRootView>
+
       <MapView 
         style={styles.map}
         provider={PROVIDER_DEFAULT}
-        initialRegion={{
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 1,
-          longitudeDelta: 1,
+        region={initialRegion}
+        ref = {mapRef}
+        />
+
+      <TouchableOpacity
+        style = {styles.button}
+        onPress={resetLocation}
+        hitSlop={{ 
+          top: 50, bottom: 20, left: 50, right: 20
         }}
-      />
+        >
+          <Icon
+            name="location-arrow"
+            color={"white"}
+            size = {30}
+            style={{
+              position: "absolute",
+              top: 9,
+              left: 13,
+            }}
+          />
+      </TouchableOpacity>
+
       <BottomSheet
         ref={sheetRef}
         index={0}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
-        
+        backgroundStyle={{
+          backgroundColor: "black",
+          borderTopLeftRadius: 25,
+          borderTopRightRadius: 25,
+        }}
+        handleIndicatorStyle={{
+          backgroundColor: "gray",
+        }}
       >
         <SafeAreaView style={styles.contentContainer}>
           <Text style={styles.bottomSheetHeadline}>
@@ -82,17 +132,19 @@ export default function Index() {
           </BottomSheetScrollView>
         </SafeAreaView>
       </BottomSheet>
+
     </GestureHandlerRootView>
   );
 }
 
+//Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   map: {
     width: '100%',
-    height: '87%',
+    height: '100%',
   },
   itemContainer: {
     padding: 6,
@@ -100,13 +152,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#eee",
   },
   contentContainer: {
-    backgroundColor: "white",
+    backgroundColor: "black",
     flex: 1,
     alignItems: "center",
-    padding: 20,
+    padding: 0,
   },
   bottomSheetHeadline: {
-    fontSize: 24,
+    fontSize: 17,
     paddingTop: 0,
-  }
+    color: "white"
+  },
+  button: {
+    position: 'absolute',
+    top: 650,
+    left: 333,
+    backgroundColor: 'black',
+    padding: 25,
+    borderRadius: 17,
+    alignContent: "center"
+  },
+  sheet: {
+    flex: 1,
+  } 
 });
