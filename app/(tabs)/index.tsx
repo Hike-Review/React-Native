@@ -1,7 +1,8 @@
 import { Text, View, StyleSheet, TouchableOpacity } from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
-import MapView, { PROVIDER_DEFAULT} from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT} from 'react-native-maps';
 import * as Location from 'expo-location';
+import Svg, {Path, Circle, Ellipse} from 'react-native-svg'
 import axios from 'axios';
 
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -79,6 +80,28 @@ export default function Index() {
     }
   };
 
+
+  const userIcon = () => {
+    return(
+      <Svg 
+        height = {20}
+        width = {20}
+      >
+      <Ellipse
+        cx="10"
+        cy="10"
+        rx="10"
+        ry="10"
+        fill="blue"
+        stroke="white"
+        strokeWidth="2"
+      />
+      </Svg>
+
+      )
+  }
+
+
   //UI Setup
   return (
     <GestureHandlerRootView>
@@ -88,7 +111,16 @@ export default function Index() {
         provider={PROVIDER_DEFAULT}
         region={initialRegion}
         ref = {mapRef}
-        />
+      >
+        <Marker 
+          coordinate={initialRegion}
+        >  
+          <View>
+            {(userIcon())}
+          </View>
+        </Marker>
+
+      </MapView>
 
       <TouchableOpacity
         style = {styles.button}
