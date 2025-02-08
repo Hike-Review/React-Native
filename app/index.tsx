@@ -7,27 +7,44 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
+// Define the type of a hike object
+interface Hike {
+  trail_id: number;
+  trail_name: string;
+  location: string;
+  difficulty: string;
+  distance: number;
+  description: string;
+  created_at: string;
+}
+
 export default function Index() {
-  // Fetch Server Data
-  const [hikeData, setHikeData] = useState(null);
+  // Sync Server Data
+  const [hikeData, setHikeData] = useState<Hike[] | null>(null);
+  const [difficultyFilter, setDifficulty] = useState('');
   const [userData, setUserData] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [hikesResponse, usersResponse] = await Promise.all([
-          axios.get('http://127.0.0.1:5000/hikes'),
-          axios.get('http://127.0.0.1:5000/users')
-        ]);
-        setHikeData(hikesResponse.data);
-        setUserData(usersResponse.data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
+  // Handle the checkbox change
+  const handleDifficultyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDifficulty(event.target.value);
+  };
+  
+  const fetchData = async () => {
+    try {
+      const [hikesResponse, usersResponse] = await Promise.all([
+        axios.get('http://127.0.0.1:5000/hikes', {params:{difficulty:difficultyFilter},}),
+        axios.get('http://127.0.0.1:5000/users')
+      ]);
+      setHikeData(hikesResponse.data);
+      setUserData(usersResponse.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [difficultyFilter]);
 
   // BottomSheet properties
   const snapPoints: string[] = ["10%", "50%", "90%"];
@@ -63,6 +80,16 @@ export default function Index() {
   return (
     <GestureHandlerRootView>
       {/* <MapView style={styles.map}></MapView> */}
+      <label>
+        Easy: <input value="Easy" type="radio" checked={difficultyFilter == 'Easy'} onChange={handleDifficultyChange}></input>
+      </label>
+      <label>
+        Moderate : <input value="Moderate" type="radio" checked={difficultyFilter == 'Moderate'} onChange={handleDifficultyChange}></input>
+      </label>
+      <label>
+        Hard : <input value="Hard" type="radio" checked={difficultyFilter == 'Hard'} onChange={handleDifficultyChange}></input>
+      </label>
+
       {hikeData ? (
       <BottomSheet
         ref={sheetRef}
@@ -84,6 +111,7 @@ export default function Index() {
         <p>Loading data...</p>
       )}
     </GestureHandlerRootView>
+    
   );
 }
 const styles = StyleSheet.create( {
