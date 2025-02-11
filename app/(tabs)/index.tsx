@@ -10,14 +10,70 @@ import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-nativ
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 
+// Define the type of a hike object
+interface Hike {
+  trail_id: number;
+  trail_name: string;
+  location: string;
+  difficulty: string;
+  distance: number;
+  description: string;
+  created_at: string;
+}
+
 export default function Index() {
+  // Sync Server Data
+  const [hikeData, setHikeData] = useState<Hike[] | null>(null);
+  // Filter
+  const [difficultyFilter, setDifficulty] = useState('');
+  // User
+  const [userData, setUserData] = useState(null);
+
+  // Handle the checkbox change
+  const handleDifficultyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDifficulty(event.target.value);
+  };
+  
+  // Getting Hikes and Users
+  const fetchData = async () => {
+    try {
+      const [hikesResponse, usersResponse] = await Promise.all([
+        axios.get('http://127.0.0.1:5000/hikes', {params:{difficulty:difficultyFilter},}),
+        axios.get('http://127.0.0.1:5000/users')
+      ]);
+      setHikeData(hikesResponse.data);
+      setUserData(usersResponse.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [difficultyFilter]);
+  
+  // Hike rendering
+  const renderHike = useCallback(
+    (record: any) => (
+      <View key={record.trail_id} style={styles.itemContainer}>
+        <Text>ID: {record.trail_id}</Text>
+        <Text>Name: {record.trail_name}</Text>
+        <Text>Location: {record.location}</Text>
+        <Text>Difficulty: {record.difficulty}</Text>
+        <Text>Distance: {record.distance} km</Text>
+        <Text>Description: {record.description}</Text>
+        <Text>Created At: {record.created_at}</Text>
+      </View>
+    ),
+    []
+  );
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "50%", "90%"], []);
 
   const sheetRef = useRef<BottomSheet>(null);
 
-  const data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+  /*const data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
 
   const renderItem = useCallback(
     (item: any) => (
@@ -26,7 +82,7 @@ export default function Index() {
       </View>
     ),
     []
-  );
+  );*/
 
   // Map properties initialization
   const mapRef = useRef<MapView | null>(null);
@@ -105,7 +161,15 @@ export default function Index() {
   //UI Setup
   return (
     <GestureHandlerRootView>
-
+      <label>
+        Easy: <input value="Easy" type="radio" checked={difficultyFilter == 'Easy'} onChange={handleDifficultyChange}></input>
+      </label>
+      <label>
+        Moderate : <input value="Moderate" type="radio" checked={difficultyFilter == 'Moderate'} onChange={handleDifficultyChange}></input>
+      </label>
+      <label>
+        Hard : <input value="Hard" type="radio" checked={difficultyFilter == 'Hard'} onChange={handleDifficultyChange}></input>
+      </label>
       <MapView 
         style={styles.map}
         provider={PROVIDER_DEFAULT}
@@ -160,7 +224,7 @@ export default function Index() {
             Near You{"\n"}
           </Text>
           <BottomSheetScrollView>
-            {data.map(renderItem)}
+            {hikeData ? hikeData.map(renderHike) : "Loading Data..."}
           </BottomSheetScrollView>
         </SafeAreaView>
       </BottomSheet>
