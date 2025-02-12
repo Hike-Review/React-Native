@@ -1,6 +1,6 @@
 import { Text, View, StyleSheet, TouchableOpacity } from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
-import MapView, { Marker, PROVIDER_DEFAULT} from 'react-native-maps';
+import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
 import Svg, {Path, Circle, Ellipse} from 'react-native-svg'
 import axios from 'axios';
@@ -18,41 +18,13 @@ export default function Index() {
   const sheetRef = useRef<BottomSheet>(null);
 
   // Markers view
-
   const [markersShown, setMarkerState] = useState<boolean>(true);
+
+  // Route view
+  const [displayedPath, setPathView] = useState<LatLng[]>([]);
 
   // Temp Data
   const hikes = [
-    {
-      "created_at": "2025-02-06 11:07:16",
-      "creator_id": "1",
-      "description": "Very Short",
-      "difficulty": "Hard",
-      "distance": "5.0",
-      "duration": "10.0",
-      "end_lat": "0.600000",
-      "end_lng": "0.600000",
-      "rating": "4.7",
-      "routing_points": [
-        [
-          "0.530000",
-          "0.530000"
-        ],
-        [
-          "0.560000",
-          "0.560000"
-        ],
-        [
-          "0.580000",
-          "0.580000"
-        ]
-      ],
-      "start_lat": 36.97662628067844,
-      "start_lng": -122.0739932398158,
-      "tags": "None",
-      "trail_id": "2",
-      "trail_name": "Test Trail B"
-    },
     {
       "created_at": "2025-02-06 11:07:16",
       "creator_id": "1",
@@ -60,49 +32,24 @@ export default function Index() {
       "difficulty": "Easy",
       "distance": "999.99",
       "duration": "5.0",
-      "end_lat": "1.000000",
-      "end_lng": "1.000000",
+      "end_lat": 36.98910805721358, 
+      "end_lng": -122.04890606463675,
       "rating": "0.5",
       "routing_points": [
         [
-          "0.100000",
-          "0.100000"
+          36.98910805721358, 
+          -122.04890606463675
         ],
         [
-          "0.200000",
-          "0.200000"
+          36.98762120726677, -122.04858956396757
         ],
         [
-          "0.300000",
-          "0.300000"
-        ],
-        [
-          "0.400000",
-          "0.400000"
-        ],
-        [
-          "0.500000",
-          "0.500000"
-        ],
-        [
-          "0.600000",
-          "0.600000"
-        ],
-        [
-          "0.700000",
-          "0.700000"
-        ],
-        [
-          "0.800000",
-          "0.800000"
-        ],
-        [
-          "0.900000",
-          "0.900000"
+          36.986371602639785,
+          -122.0483819712592,
         ]
       ],
-      "start_lat": 36.986465872189676,
-      "start_lng": -122.04846778753316,
+      "start_lat": 36.986371602639785,
+      "start_lng": -122.0483819712592,
       "tags": "None",
       "trail_id": "1",
       "trail_name": "Test Trail A"
@@ -170,6 +117,8 @@ export default function Index() {
     if (mapRef.current) {
       mapRef.current.animateToRegion(initialRegion, 1000);
     }
+    showMarkers(true);
+    setPathView([]);
   };
 
   // Handling marker selection
@@ -178,8 +127,8 @@ export default function Index() {
   }
 
   const onMarkerSelection = (marker_coords: any, key: any) => {
-    console.log(marker_coords);
-    console.log(key);
+    // console.log(marker_coords);
+    // console.log(key);
     // Hide Markers
     showMarkers(false);
     // Update view of Map for marker
@@ -192,6 +141,8 @@ export default function Index() {
     if (mapRef.current) {
       mapRef.current.animateToRegion(region, 1000);
     }
+    // console.log(hikes[key].routing_points.map((item)=>({lat:item[0], lng:item[1]})));
+    setPathView(hikes[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
   }
 
   //UI Setup
@@ -205,18 +156,24 @@ export default function Index() {
         ref = {mapRef}
         showsUserLocation
       >
-        {markersShown ? hikes.map((hike, index) => (
-          <Marker
-          key={hike.trail_id} 
-          coordinate={{
-            longitude: hike.start_lng,
-            latitude: hike.start_lat
-          }}
-          onPress={(event) => (
-            onMarkerSelection(event.nativeEvent.coordinate, index)
-          )}
-          />
-        )) : null}
+        { markersShown ? 
+          hikes.map((hike, index) => (
+            <Marker
+            key={hike.trail_id} 
+            coordinate={{
+              longitude: hike.start_lng,
+              latitude: hike.start_lat
+            }}
+            onPress={(event) => (
+              onMarkerSelection(event.nativeEvent.coordinate, index)
+            )}/>
+          ))
+         : null }
+         <Polyline 
+         coordinates={displayedPath}
+         strokeColor={"#0088cc"}
+         strokeWidth={10}
+         />
       </MapView>
 
       <TouchableOpacity
