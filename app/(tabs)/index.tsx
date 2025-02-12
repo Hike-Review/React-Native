@@ -17,6 +17,94 @@ export default function Index() {
 
   const sheetRef = useRef<BottomSheet>(null);
 
+  // Temp Data
+  const hikes = [
+    {
+      "created_at": "2025-02-06 11:07:16",
+      "creator_id": "1",
+      "description": "Very Short",
+      "difficulty": "Hard",
+      "distance": "5.0",
+      "duration": "10.0",
+      "end_lat": "0.600000",
+      "end_lng": "0.600000",
+      "rating": "4.7",
+      "routing_points": [
+        [
+          "0.530000",
+          "0.530000"
+        ],
+        [
+          "0.560000",
+          "0.560000"
+        ],
+        [
+          "0.580000",
+          "0.580000"
+        ]
+      ],
+      "start_lat": 36.97662628067844,
+      "start_lng": -122.0739932398158,
+      "tags": "None",
+      "trail_id": "2",
+      "trail_name": "Test Trail B"
+    },
+    {
+      "created_at": "2025-02-06 11:07:16",
+      "creator_id": "1",
+      "description": "Cool",
+      "difficulty": "Easy",
+      "distance": "999.99",
+      "duration": "5.0",
+      "end_lat": "1.000000",
+      "end_lng": "1.000000",
+      "rating": "0.5",
+      "routing_points": [
+        [
+          "0.100000",
+          "0.100000"
+        ],
+        [
+          "0.200000",
+          "0.200000"
+        ],
+        [
+          "0.300000",
+          "0.300000"
+        ],
+        [
+          "0.400000",
+          "0.400000"
+        ],
+        [
+          "0.500000",
+          "0.500000"
+        ],
+        [
+          "0.600000",
+          "0.600000"
+        ],
+        [
+          "0.700000",
+          "0.700000"
+        ],
+        [
+          "0.800000",
+          "0.800000"
+        ],
+        [
+          "0.900000",
+          "0.900000"
+        ]
+      ],
+      "start_lat": 36.986465872189676,
+      "start_lng": -122.04846778753316,
+      "tags": "None",
+      "trail_id": "1",
+      "trail_name": "Test Trail A"
+    }
+  ]
+
   const data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
 
   const renderItem = useCallback(
@@ -80,27 +168,10 @@ export default function Index() {
     }
   };
 
-
-  const userIcon = () => {
-    return(
-      <Svg 
-        height = {20}
-        width = {20}
-      >
-      <Ellipse
-        cx="10"
-        cy="10"
-        rx="10"
-        ry="10"
-        fill="blue"
-        stroke="white"
-        strokeWidth="2"
-      />
-      </Svg>
-
-      )
+  // Handling marker selection
+  const onMarkerSelection = (marker: any, key: any) => {
+    console.log(key);
   }
-
 
   //UI Setup
   return (
@@ -111,15 +182,18 @@ export default function Index() {
         provider={PROVIDER_DEFAULT}
         region={initialRegion}
         ref = {mapRef}
+        showsUserLocation
       >
-        <Marker 
-          coordinate={initialRegion}
-        >  
-          <View>
-            {(userIcon())}
-          </View>
-        </Marker>
-
+        {hikes.map((hike, index) => (
+          <Marker
+          key={hike.trail_id} 
+          coordinate={{
+            longitude: hike.start_lng,
+            latitude: hike.start_lat
+          }}
+          onPress={(event) => onMarkerSelection(event, index)}
+          />
+        ))}
       </MapView>
 
       <TouchableOpacity
