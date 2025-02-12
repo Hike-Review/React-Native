@@ -10,10 +10,12 @@ import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-nativ
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 
+// Add interfacing
+
 export default function Index() {
 
   // BottomSheet properties
-  const snapPoints = useMemo(() => ["8%", "50%", "90%"], []);
+  const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
 
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -22,6 +24,8 @@ export default function Index() {
 
   // Route view
   const [displayedPath, setPathView] = useState<LatLng[]>([]);
+  const [hikeDetails, setHike] = useState<any>("ERROR");
+  const [pathViewSelected, pathViewSelect] = useState<boolean>(false);
 
   // Temp Data
   const hikes = [
@@ -114,23 +118,31 @@ export default function Index() {
 
   //Reset region for button
   const resetLocation = () => {
+    // Update Sheet Ref
+    try{
+      sheetRef.current?.snapToIndex(0);
+    }
+    catch{
+      console.error("Unable to update BottomSheet reference.");
+    }
     if (mapRef.current) {
       mapRef.current.animateToRegion(initialRegion, 1000);
     }
-    showMarkers(true);
+    // Reset Hike display state
+    setHike(null);
     setPathView([]);
+    // Expose Markers
+    setMarkerState(true);
+    // Transition to Map View
+    pathViewSelect(false);
   };
 
   // Handling marker selection
-  const showMarkers = (state: boolean) => {
-    setMarkerState(state);
-  }
-
   const onMarkerSelection = (marker_coords: any, key: any) => {
-    // console.log(marker_coords);
-    // console.log(key);
+    // Transition to Path View
+    pathViewSelect(true);
     // Hide Markers
-    showMarkers(false);
+    setMarkerState(false);
     // Update view of Map for marker
     const region = {
       latitude: marker_coords.latitude,
@@ -141,8 +153,16 @@ export default function Index() {
     if (mapRef.current) {
       mapRef.current.animateToRegion(region, 1000);
     }
-    // console.log(hikes[key].routing_points.map((item)=>({lat:item[0], lng:item[1]})));
+    // Display Path using hike details
     setPathView(hikes[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
+    setHike(hikes[key]);
+    // Update Sheet Ref
+    try{
+      sheetRef.current?.snapToIndex(1);
+    }
+    catch{
+      console.error("Unable to update BottomSheet reference.");
+    }
   }
 
   //UI Setup
@@ -178,7 +198,7 @@ export default function Index() {
 
       <TouchableOpacity
         style = {styles.button}
-        onPress={resetLocation}
+        onPress={() => {resetLocation()}}
         hitSlop={{ 
           top: 50, bottom: 20, left: 50, right: 20
         }}
@@ -209,6 +229,7 @@ export default function Index() {
           backgroundColor: "gray",
         }}
       >
+        { !pathViewSelected ? (
         <SafeAreaView style={styles.contentContainer}>
           <Text style={styles.bottomSheetHeadline}>
             Near You{"\n"}
@@ -216,7 +237,34 @@ export default function Index() {
           <BottomSheetScrollView>
             {data.map(renderItem)}
           </BottomSheetScrollView>
+        </SafeAreaView>) : (
+        <SafeAreaView style={styles.contentContainer}>
+          <TouchableOpacity
+            style={styles.hikeViewClose}
+            onPress={resetLocation}
+            hitSlop={{ 
+              top: 50, bottom: 20, left: 50, right: 20
+            }}
+            >
+              <Icon
+                name="arrow-down"
+                color={"white"}
+                size = {25}
+                style={{
+                  position: "absolute",
+                  top: 9,
+                  left: 13,
+                }}
+              />
+          </TouchableOpacity>
+          <Text style={styles.bottomSheetHeadline}>
+            {hikeDetails.trail_name}
+          </Text>
+          <Text style={styles.hikeSubHeader}>
+            {hikeDetails.difficulty} Hike; Distance: {hikeDetails.distance}mi; Duration: {hikeDetails.duration}
+          </Text>
         </SafeAreaView>
+        )}
       </BottomSheet>
 
     </GestureHandlerRootView>
@@ -259,5 +307,17 @@ const styles = StyleSheet.create({
   },
   sheet: {
     flex: 1,
-  } 
+  },
+  hikeSubHeader: {
+    fontSize: 12,
+    color: "white"
+  },
+  hikeViewClose: {
+    position: 'absolute',
+    right: 333,
+    backgroundColor: 'black',
+    padding: 25,
+    borderRadius: 17,
+    alignContent: "center",
+  }
 });
