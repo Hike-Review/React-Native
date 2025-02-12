@@ -17,6 +17,10 @@ export default function Index() {
 
   const sheetRef = useRef<BottomSheet>(null);
 
+  // Markers view
+
+  const [markersShown, setMarkerState] = useState<boolean>(true);
+
   // Temp Data
   const hikes = [
     {
@@ -169,8 +173,25 @@ export default function Index() {
   };
 
   // Handling marker selection
-  const onMarkerSelection = (marker: any, key: any) => {
+  const showMarkers = (state: boolean) => {
+    setMarkerState(state);
+  }
+
+  const onMarkerSelection = (marker_coords: any, key: any) => {
+    console.log(marker_coords);
     console.log(key);
+    // Hide Markers
+    showMarkers(false);
+    // Update view of Map for marker
+    const region = {
+      latitude: marker_coords.latitude,
+      longitude: marker_coords.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(region, 1000);
+    }
   }
 
   //UI Setup
@@ -184,16 +205,18 @@ export default function Index() {
         ref = {mapRef}
         showsUserLocation
       >
-        {hikes.map((hike, index) => (
+        {markersShown ? hikes.map((hike, index) => (
           <Marker
           key={hike.trail_id} 
           coordinate={{
             longitude: hike.start_lng,
             latitude: hike.start_lat
           }}
-          onPress={(event) => onMarkerSelection(event, index)}
+          onPress={(event) => (
+            onMarkerSelection(event.nativeEvent.coordinate, index)
+          )}
           />
-        ))}
+        )) : null}
       </MapView>
 
       <TouchableOpacity
