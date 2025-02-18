@@ -9,7 +9,7 @@ export default function Profile() {
   const [password, setPassword] = useState('');
   const [registerMessage, setRegisterMessage] = useState('');
 
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginName, setLoginName] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginMessage, setLoginMessage] = useState('');
 
@@ -25,7 +25,7 @@ export default function Profile() {
       setRegisterMessage(registerResponse.data.message || 'Registration successful!');
     } catch (error) {
       console.error(error);
-      setRegisterMessage('Registration failed. Please try again.');
+      setRegisterMessage(error.response.data.message || 'Registration Failed.');
     }
   };
 
@@ -33,14 +33,14 @@ export default function Profile() {
     e.preventDefault();
 
     try {
-      const loginResponse = await axios.post('http://127.0.0.1:5000/login', {email: loginEmail, password: loginPassword});
+      const loginResponse = await axios.post('http://127.0.0.1:5000/login', {username: loginName, email: loginName, password: loginPassword});
       console.log(loginResponse);
-      setLoginEmail('');
+      setLoginName('');
       setLoginPassword('');
       setLoginMessage(loginResponse.data.message || 'Login successful!');
     } catch (error) {
       console.error(error);
-      setLoginMessage('Login failed. Please try again.');
+      setLoginMessage(error.response.data.message || 'Login failed. Please try again.');
     }
   };
 
@@ -63,7 +63,7 @@ export default function Profile() {
 
       <div>
         Login: <br/>
-        Email: <input type="text" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)}/><br/>
+        Username/Email: <input type="text" value={loginName} onChange={(e) => setLoginName(e.target.value)}/><br/>
         Password: <input type="text" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}/><br/>
         <button onClick={submitLogin}>Login</button>
         {loginMessage && <p>{loginMessage}</p>}
