@@ -25,6 +25,7 @@ const TabsLayout = () => {
             name="profile"
             options = {{
                 title: "Profile",
+                headerShown: false,
                 tabBarInactiveBackgroundColor: "black",
                 tabBarActiveBackgroundColor: "black",
                 tabBarActiveTintColor: "white",
