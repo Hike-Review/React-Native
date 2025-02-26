@@ -1,9 +1,115 @@
-import { Text, View, StyleSheet, Button, ImageBackground, TouchableOpacity } from "react-native";
+import { Text, View, StyleSheet, Button, ImageBackground, TouchableOpacity, Modal, Image } from "react-native";
 import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from 'react-native-gesture-handler';
+import { createContext, useContext, useState } from "react";
+import { useForm, Controller } from 'react-hook-form';
+//import LoginContext from '../loginState';
+import { LoginContext } from '../loginState';
+import MyProvider from "../loginState";
+import axios from "axios";
+
+// TODO: Make a global interface file for all interfaces
+// Guest session
+interface SessionProps {
+  accessToken?: any,
+  refreshToken?: any,
+  username?: string,
+  email?: string,
+  password?: string
+}
+
+// API URL
+const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
 
 export default function Profile() {
+
+  // Create context for login
+  // const {loginState, setLoginState} = useContext(LoginContext);
+
+  // Bandaid
+  const [loginState, setLoginState] = useState<SessionProps>({});
+  const [loggedIn, loginSuccessful] = useState<boolean>(false);
+
+  // Login function
+  async function login(emailInput:string, passwordInput:string): Promise<any> {
+    try{
+      const loginResponse = await axios.post(API_URL + "auth/login", {
+        username: "",
+        email: emailInput,
+        password: passwordInput
+      });
+      return loginResponse
+    }
+    catch(error){
+      console.error(error);
+      return error
+    }
+  }
+
+  // Logout function
+  const onLogout = () => {
+    loginSuccessful(false);
+    setLoginState({});
+  }
+
+  // Modal state
+  const [loadingState, setLoadingState] = useState<boolean>(false);
+  const [modalText, setModalText] = useState<string>("Loading...");
+
+  //console.log("Login State: ");
+  // console.log(loginState);
+
+  // Login form
+  const { control, handleSubmit, setError, clearErrors, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      email: "",
+      password: ""
+    }
+  });
+
+  // Handle form submission
+  const onSubmit = (data: any) => {
+    // console.log('Submitted Data:', data); 
+    clearErrors();
+    setLoadingState(true);
+    login(data.email, data.password).then(
+      response => {
+        //console.log(response.status);
+        //console.log(response.data);
+        /*setLoginState({
+          accessToken: response.data.
+          refreshToken: any,
+          username: string,
+          email: string,
+        })*/
+        // Login Failed
+        if(response.status == 200){
+          setLoginState({
+            accessToken: response.data.tokens.access,
+            refreshToken: response.data.tokens.refresh,
+            username: response.data.username,
+            email: data.email
+          });
+          loginSuccessful(true);
+        }
+        else{
+          console.log("login failed");
+          setError("password", {type: 'manual'});
+        }
+        setLoadingState(false);
+      }
+    )
+    // Reset login form
+    reset();
+  };
+
+  // Log Errors
+  const onInvalid = (err: any) => {
+    console.error(err);
+  }
+
   return (
     <GestureHandlerRootView>
+      { !loggedIn ? 
       <ImageBackground 
         style ={styles.container}
         source = {require('../../assets/images/hikeimage2.avif')}
@@ -12,12 +118,64 @@ export default function Profile() {
         <Text style={styles.title}> 
           Log In 
         </Text>
+        <Modal
+          visible={loadingState} 
+          transparent 
+          animationType="fade"
+        >
+          <View style={styles.overlay}>
+            <View style={styles.modal}>
+              <Text> {modalText} </Text>
+            </View>
+          </View>
+        </Modal>
         <View style={styles.form}>
-          <TextInput style={styles.input} placeholder="Email" placeholderTextColor={'gray'} />
-          <TextInput style={styles.input} placeholder="Password" secureTextEntry={true} placeholderTextColor={'gray'}/>
+          <Controller
+            control={control}
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={styles.input} 
+                placeholder="Email" 
+                placeholderTextColor={'gray'}
+                onChangeText = {onChange}
+                value={value}
+                onBlur={() => {}}
+              />
+            )}
+            name="email"
+            rules = {
+              {
+                required: true
+              }
+            }
+          />
+          <Controller
+            control={control}
+            render={({field: {onChange, value}}) => (
+              <TextInput 
+                style={styles.input} 
+                placeholder="Password" 
+                secureTextEntry={true} 
+                placeholderTextColor={'gray'}
+                onChangeText = {onChange}
+                value={value}
+                onBlur={() => {}}
+              />
+            )}
+            name="password"
+            rules = {
+              {
+                required: true
+              }
+            }
+          /> 
+            {(errors.email) && <Text style={styles.errorText}> {"Please enter your email and password"} </Text>}
+            {(errors.password) && <Text style={styles.errorText}> {"Invalid Credentials"} </Text>}
         </View>
         <View style = {styles.buttonlayout}> 
-          <TouchableOpacity style={styles.button} >
+          <TouchableOpacity 
+          style={styles.button}
+          onPress={handleSubmit(onSubmit, onInvalid)}>
             <Text style={styles.buttontext}>
               Sign In
             </Text>
@@ -29,6 +187,26 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
       </ImageBackground>
+      : 
+      <ImageBackground 
+        style ={styles.container}
+        source = {require('../../assets/images/hikeimage2.avif')}
+        resizeMode = 'cover'
+      >
+        <View style={styles.profileContainer}>
+          <Image source={require('../../assets/images/default-profile-pic.jpg')} style={styles.profilePicture} />
+          <Text style={styles.name}>{loginState.username}</Text>
+          <Text style={styles.email}>{loginState.email}</Text>
+          <TouchableOpacity 
+          style={styles.logout}
+          onPress={onLogout}>
+            <Text style={styles.buttontext}>
+              Log Out
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ImageBackground>
+      }
     </GestureHandlerRootView>
   );
 }
@@ -79,7 +257,59 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "ultralight",
     textAlign: "center",
-    
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 2,
+  },
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modal: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 5,
+    minWidth: 300,
+  },
+  profileContainer: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 50,
+    marginTop: 75,
+    marginBottom: 20,
+    backgroundColor: 'white'
+  },
+  profilePicture: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    marginBottom: 20,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  username: {
+    fontSize: 16,
+    color: 'gray',
+    marginBottom: 10,
+  },
+  email: {
+    fontSize: 16,
+  },
+  logout: {
+    position: 'absolute',
+    backgroundColor: "#023020",
+    bottom: 10,
+    left: 0,
+    right: 0,
+    padding: 20,
+    marginRight: 10,
+    marginLeft: 10,
   }
 });
 
