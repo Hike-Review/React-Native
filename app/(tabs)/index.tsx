@@ -10,9 +10,15 @@ import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-nativ
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 
+import MyModal from './modal';
+
 // Add interfacing
 
 export default function Index() {
+
+  // Add modal visibility state
+  const [modalVisible, setModalVisible] = useState(false);
+
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
@@ -263,6 +269,13 @@ export default function Index() {
           <Text style={styles.hikeSubHeader}>
             {hikeDetails.difficulty} Hike; Distance: {hikeDetails.distance}mi; Duration: {hikeDetails.duration}
           </Text>
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.modalButton}>
+            <Text style={{ color: 'white' }}>Show Modal</Text>
+          </TouchableOpacity>
+          <MyModal isOpen={modalVisible} onClose={() => setModalVisible(false)} />
+
+
+
         </SafeAreaView>
         )}
       </BottomSheet>
@@ -319,5 +332,13 @@ const styles = StyleSheet.create({
     padding: 25,
     borderRadius: 17,
     alignContent: "center",
-  }
+  },
+  modalButton: {
+    position: 'absolute',
+    bottom: 50,
+    alignSelf: 'center',
+    padding: 15,
+    backgroundColor: 'black',
+    borderRadius: 10,
+  },
 });
