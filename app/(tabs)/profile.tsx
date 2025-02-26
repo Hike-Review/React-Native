@@ -1,7 +1,10 @@
 import { Text, View, StyleSheet, Button, ImageBackground, TouchableOpacity } from "react-native";
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from 'react-native-gesture-handler';
+import axios from 'axios';
 
 export default function Profile() {
+
   return (
     <GestureHandlerRootView>
       <ImageBackground 
@@ -16,7 +19,7 @@ export default function Profile() {
           <TextInput style={styles.input} placeholder="Email" placeholderTextColor={'gray'} />
           <TextInput style={styles.input} placeholder="Password" secureTextEntry={true} placeholderTextColor={'gray'}/>
         </View>
-        <View style = {styles.buttonlayout}> 
+        <View style={styles.buttonlayout}> 
           <TouchableOpacity style={styles.button} >
             <Text style={styles.buttontext}>
               Sign In
