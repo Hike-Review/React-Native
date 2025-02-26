@@ -170,7 +170,27 @@ export default function Index() {
       console.error("Unable to update BottomSheet reference.");
     }
   }
+  interface Review {
+    id: number;
+    user: string;
+    review: string;
+    rating: number;
+    review_date: string;
+  }
+  // Hardcoded reviews to display
+  const hardcodedReviews: Review[] = [
+    { id: 1, user: "John Doe", review: "Amazing hike! Beautiful scenery.", rating: 5, review_date: "2025-02-25 14:30", trail_id: 101 },
+    { id: 2, user: "Jane Smith", review: "A bit challenging but worth it!", rating: 4, review_date: "2025-02-24 10:15", trail_id: 102 },
+    { id: 3, user: "Mike Brown", review: "Loved the peaceful atmosphere.", rating: 5, review_date: "2025-02-23 16:45", trail_id: 101 },
+  ];
 
+  const renderReview = (review: Review) => (
+    <View key={review.id} style={styles.reviewContainer}>
+      <Text style={styles.reviewUser}>{review.user} - {review.review_date}</Text>
+      <Text style={styles.reviewText}>{review.review}</Text>
+      <Text style={styles.reviewRating}>⭐ {review.rating}/5</Text>
+    </View>
+  );
   //UI Setup
   return (
     <GestureHandlerRootView>
@@ -269,6 +289,10 @@ export default function Index() {
           <Text style={styles.hikeSubHeader}>
             {hikeDetails.difficulty} Hike; Distance: {hikeDetails.distance}mi; Duration: {hikeDetails.duration}
           </Text>
+          <View style={styles.reviewsContainer}>
+            <Text style={styles.reviewsHeader}>Reviews:</Text>
+            {hardcodedReviews.map(renderReview)}
+          </View>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.modalButton}>
             <Text style={{ color: 'white' }}>Show Modal</Text>
           </TouchableOpacity>
@@ -340,5 +364,35 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: 'black',
     borderRadius: 10,
+  },
+  reviewsContainer: {
+    backgroundColor: "#333",
+    padding: 15,
+    borderRadius: 10,
+    marginVertical: 10,
+  },
+  reviewContainer: {
+    backgroundColor: "#222",
+    padding: 10,
+    borderRadius: 10,
+    marginVertical: 5,
+  },
+  reviewUser: {
+    fontWeight: "bold",
+    color: "white",
+  },
+  reviewText: {
+    color: "gray",
+    marginTop: 2,
+  },
+  reviewRating: {
+    color: "gold",
+    marginTop: 2,
+  },
+  reviewsHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 5,
   },
 });
