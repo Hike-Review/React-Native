@@ -308,20 +308,28 @@ export default function Index() {
         { !pathViewSelected ? (
         <SafeAreaView style={styles.contentContainer}>
           <Text style={styles.bottomSheetHeadline}>
-            Near You{"\n"}
+            Near You
           </Text>
           <BottomSheetScrollView>
             {/* {hikeData.map(renderBottomSheet)} */}
             {hikeData.map( (hike, index) => (
-              <View key={Number(hike.trail_id)} style={styles.itemContainer}>
+              <View key={Number(hike.trail_id)} style={styles.contentContainer}>
               <TouchableOpacity
                 onPress={(event) => (
                   onMarkerSelection({latitude: hike.start_lat, longitude: hike.start_lng}, index)
                 )}
+                style = {styles.hikeBottomContainer}
+                activeOpacity={0.8}
               >
-                <Image source = {require('../../assets/images/exhike.jpg')}/>
-                <Text>
+                <Image 
+                  source = {require('../../assets/images/exhike.jpg')}
+                  style={styles.hikeBottomImage}
+                />
+                <Text style={styles.boldText}>
                   {hike.trail_name}
+                </Text>
+                <Text style={styles.hikeSubText}>
+                  {hike.difficulty}{"\t"}{Number(hike.distance).toFixed(2)} mi{"\t"}    {hike.duration} min
                 </Text>
               </TouchableOpacity>
             </View>
@@ -352,7 +360,8 @@ export default function Index() {
             {hikeDetails.trail_name}
           </Text>
           <Text style={styles.hikeSubHeader}>
-            {hikeDetails.difficulty} Hike; Distance: {hikeDetails.distance}mi; Duration: {hikeDetails.duration}
+            {hikeDetails.difficulty} Hike {"\t"} Distance: {Number(hikeDetails.distance).toFixed(2)}
+             mi {"\t"}   Duration: {hikeDetails.duration}
           </Text>
         </SafeAreaView>
         )}
@@ -383,9 +392,11 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   bottomSheetHeadline: {
-    fontSize: 17,
+    fontSize: 20,
     paddingTop: 0,
-    color: "white"
+    color: "white",
+    fontWeight: "bold",
+    marginBottom: 12,
   },
   button: {
     position: 'absolute',
@@ -401,7 +412,8 @@ const styles = StyleSheet.create({
   },
   hikeSubHeader: {
     fontSize: 12,
-    color: "white"
+    color: "white",
+    textAlign: "center",
   },
   hikeViewClose: {
     position: 'absolute',
@@ -410,5 +422,25 @@ const styles = StyleSheet.create({
     padding: 25,
     borderRadius: 17,
     alignContent: "center",
-  }
+  },
+  boldText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 2.5,
+  },
+  hikeBottomContainer: {
+    padding: 6,
+    margin: 6,
+    backgroundColor: "black",
+    marginBottom: 15,
+  },
+  hikeSubText: {
+    color: "white",
+  },
+  hikeBottomImage: {
+    width: 350,
+    borderRadius: 15,
+    marginBottom: 5,
+  },
 });
