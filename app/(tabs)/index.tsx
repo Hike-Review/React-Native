@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, TouchableOpacity } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager} from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -9,6 +9,7 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
+import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
 
 // Add interfacing
 
@@ -27,7 +28,6 @@ export default function Index() {
   const [hikeDetails, setHike] = useState<any>("ERROR");
   const [pathViewSelected, pathViewSelect] = useState<boolean>(false);
 
-  // Temp Data
   const hikes = [
     {
       "created_at": "2025-02-06 11:07:16",
@@ -60,15 +60,63 @@ export default function Index() {
     }
   ]
 
+  //Axios Testing
+  const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
+
+  const [hikeData, setHikeData] = useState<Hike[]>(hikes);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const hikeDB = await axios.get(API_URL + "hikes");
+        setHikeData(hikeDB.data);
+      }
+      catch (error) {
+        console.log(error);
+      }    
+    }
+    fetchData();
+  }, []);
+
+  //Declared Hike Type
+  type Hike = {
+    "created_at": string,
+    "creator_id": string,
+    "description": string,
+    "difficulty": string,
+    "distance": string,
+    "duration": string,
+    "end_lat": number,
+    "end_lng": number,
+    "rating": string,
+    "routing_points": Array<Array<number>>,
+    "start_lat": number,
+    "start_lng": number,
+    "tags": string,
+    "trail_id": string,
+    "trail_name": string,
+  };
+
+  // console.log(hikeData.length)
+
   const data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
 
-  const renderItem = useCallback(
-    (item: any) => (
-      <View key={item} style={styles.itemContainer}>
-        <Text>{item}</Text>
+  const renderBottomSheet = useCallback( 
+    (item: any, index: number) => (
+      <View key={Number(item.trail_id)} style={styles.itemContainer}>
+        <TouchableOpacity
+          onPress={(event) => (
+            onMarkerSelection([item.start_lat, item.start_lng], index)
+          )}
+        >
+          <Image source = {require('../../assets/images/exhike.jpg')}/>
+          <Text>
+            kendrick {item.trail_name}
+          </Text>
+        </TouchableOpacity>
       </View>
-    ),
-    []
+    ), 
+    [] 
   );
 
   // Map properties initialization
@@ -138,6 +186,34 @@ export default function Index() {
   };
 
   // Handling marker selection
+  const onBottomSelection = (marker_coords: any, key: any) => {
+    // Transition to Path View
+    pathViewSelect(true);
+    // Hide Markers
+    setMarkerState(false);
+    // Update view of Map for marker
+    const region = {
+      latitude: marker_coords.latitude,
+      longitude: marker_coords.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(region, 1000);
+    }
+    // Display Path using hike details
+    setPathView(hikeData[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
+    setHike(hikeData[key]);
+    // Update Sheet Ref
+    try{
+      sheetRef.current?.snapToIndex(1);
+    }
+    catch{
+      console.error("Unable to update BottomSheet reference.");
+    }
+  }
+
+  // Handling marker selection
   const onMarkerSelection = (marker_coords: any, key: any) => {
     // Transition to Path View
     pathViewSelect(true);
@@ -154,8 +230,8 @@ export default function Index() {
       mapRef.current.animateToRegion(region, 1000);
     }
     // Display Path using hike details
-    setPathView(hikes[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
-    setHike(hikes[key]);
+    setPathView(hikeData[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
+    setHike(hikeData[key]);
     // Update Sheet Ref
     try{
       sheetRef.current?.snapToIndex(1);
@@ -177,7 +253,7 @@ export default function Index() {
         showsUserLocation
       >
         { markersShown ? 
-          hikes.map((hike, index) => (
+          hikeData.map((hike, index) => (
             <Marker
             key={hike.trail_id} 
             coordinate={{
@@ -235,7 +311,22 @@ export default function Index() {
             Near You{"\n"}
           </Text>
           <BottomSheetScrollView>
-            {data.map(renderItem)}
+            {/* {hikeData.map(renderBottomSheet)} */}
+            {hikeData.map( (hike, index) => (
+              <View key={Number(hike.trail_id)} style={styles.itemContainer}>
+              <TouchableOpacity
+                onPress={(event) => (
+                  onMarkerSelection({latitude: hike.start_lat, longitude: hike.start_lng}, index)
+                )}
+              >
+                <Image source = {require('../../assets/images/exhike.jpg')}/>
+                <Text>
+                  {hike.trail_name}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            ))
+            }
           </BottomSheetScrollView>
         </SafeAreaView>) : (
         <SafeAreaView style={styles.contentContainer}>
