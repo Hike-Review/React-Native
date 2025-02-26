@@ -179,9 +179,9 @@ export default function Index() {
   }
   // Hardcoded reviews to display
   const hardcodedReviews: Review[] = [
-    { id: 1, user: "John Doe", review: "Amazing hike! Beautiful scenery.", rating: 5, review_date: "2025-02-25 14:30", trail_id: 101 },
-    { id: 2, user: "Jane Smith", review: "A bit challenging but worth it!", rating: 4, review_date: "2025-02-24 10:15", trail_id: 102 },
-    { id: 3, user: "Mike Brown", review: "Loved the peaceful atmosphere.", rating: 5, review_date: "2025-02-23 16:45", trail_id: 101 },
+    { id: 1, user: "John Doe", review: "Amazing hike! Beautiful scenery.", rating: 5, review_date: "2025-02-25 14:30"},
+    { id: 2, user: "Jane Smith", review: "A bit challenging but worth it!", rating: 4, review_date: "2025-02-24 10:15"},
+    { id: 3, user: "Mike Brown", review: "Loved the peaceful atmosphere.", rating: 5, review_date: "2025-02-23 16:45"},
   ];
 
   const renderReview = (review: Review) => (
