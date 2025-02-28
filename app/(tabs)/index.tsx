@@ -28,42 +28,10 @@ export default function Index() {
   const [hikeDetails, setHike] = useState<any>("ERROR");
   const [pathViewSelected, pathViewSelect] = useState<boolean>(false);
 
-  const hikes = [
-    {
-      "created_at": "2025-02-06 11:07:16",
-      "creator_id": "1",
-      "description": "Cool",
-      "difficulty": "Easy",
-      "distance": "999.99",
-      "duration": "5.0",
-      "end_lat": 36.98910805721358, 
-      "end_lng": -122.04890606463675,
-      "rating": "0.5",
-      "routing_points": [
-        [
-          36.98910805721358, 
-          -122.04890606463675
-        ],
-        [
-          36.98762120726677, -122.04858956396757
-        ],
-        [
-          36.986371602639785,
-          -122.0483819712592,
-        ]
-      ],
-      "start_lat": 36.986371602639785,
-      "start_lng": -122.0483819712592,
-      "tags": "None",
-      "trail_id": "1",
-      "trail_name": "Test Trail A"
-    }
-  ]
-
   //Axios Testing
   const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
 
-  const [hikeData, setHikeData] = useState<Hike[]>(hikes);
+  const [hikeData, setHikeData] = useState<Hike[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,26 +66,6 @@ export default function Index() {
   };
 
   // console.log(hikeData.length)
-
-  const data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
-
-  const renderBottomSheet = useCallback( 
-    (item: any, index: number) => (
-      <View key={Number(item.trail_id)} style={styles.itemContainer}>
-        <TouchableOpacity
-          onPress={(event) => (
-            onMarkerSelection([item.start_lat, item.start_lng], index)
-          )}
-        >
-          <Image source = {require('../../assets/images/exhike.jpg')}/>
-          <Text>
-            kendrick {item.trail_name}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    ), 
-    [] 
-  );
 
   // Map properties initialization
   const mapRef = useRef<MapView | null>(null);
@@ -184,34 +132,6 @@ export default function Index() {
     // Transition to Map View
     pathViewSelect(false);
   };
-
-  // Handling marker selection
-  const onBottomSelection = (marker_coords: any, key: any) => {
-    // Transition to Path View
-    pathViewSelect(true);
-    // Hide Markers
-    setMarkerState(false);
-    // Update view of Map for marker
-    const region = {
-      latitude: marker_coords.latitude,
-      longitude: marker_coords.longitude,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    };
-    if (mapRef.current) {
-      mapRef.current.animateToRegion(region, 1000);
-    }
-    // Display Path using hike details
-    setPathView(hikeData[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
-    setHike(hikeData[key]);
-    // Update Sheet Ref
-    try{
-      sheetRef.current?.snapToIndex(1);
-    }
-    catch{
-      console.error("Unable to update BottomSheet reference.");
-    }
-  }
 
   // Handling marker selection
   const onMarkerSelection = (marker_coords: any, key: any) => {
@@ -351,7 +271,7 @@ export default function Index() {
                 size = {25}
                 style={{
                   position: "absolute",
-                  top: 9,
+                  top: 0,
                   left: 13,
                 }}
               />
@@ -361,7 +281,7 @@ export default function Index() {
           </Text>
           <Text style={styles.hikeSubHeader}>
             {hikeDetails.difficulty} Hike {"\t"} Distance: {Number(hikeDetails.distance).toFixed(2)}
-             mi {"\t"}   Duration: {hikeDetails.duration}
+             mi {"\t"}    Duration: {hikeDetails.duration} min
           </Text>
         </SafeAreaView>
         )}
