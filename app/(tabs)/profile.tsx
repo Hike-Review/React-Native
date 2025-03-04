@@ -8,7 +8,7 @@ import axios from "axios";
 //import { LoginContext } from '../loginState';
 //import MyProvider from "../loginState";
 //import useAuth from '../loginState';
-import { useAuth, LoginContext } from "../loginState";
+import { useAuth, LoginContext } from "../components/loginState";
 
 import { SignUpComponent } from "../components/signup";
 

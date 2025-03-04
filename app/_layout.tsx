@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import LoginProvider from "./loginState";
+import LoginProvider from "./components/loginState";
 
 const RootLayout = () => {
   return(
