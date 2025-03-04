@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager} from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView} from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -11,13 +11,16 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
 
+import MyModal from '../modal';
+
 // Add interfacing
 
 export default function Index() {
+  // Add modal visibility state
+  const [modalVisible, setModalVisible] = useState(false);
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
-
   const sheetRef = useRef<BottomSheet>(null);
 
   // Markers view
@@ -28,22 +31,27 @@ export default function Index() {
   const [hikeDetails, setHike] = useState<any>("ERROR");
   const [pathViewSelected, pathViewSelect] = useState<boolean>(false);
 
-  //Axios Testing
+  // Axios Server Calling
   const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
 
   const [hikeData, setHikeData] = useState<Hike[]>([]);
+  const [groupData, setGroupData] = useState<Group[]>([]);
+  const [reviewData, setReviewData] = useState<Review[]>([]);
 
+  // Fetch Hikes from Database
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchHikeData = async () => {
       try {
         const hikeDB = await axios.get(API_URL + "hikes");
+        // const groupDB = await axios.get(API_URL + "groups");
+        // setGroupData(groupDB.data);
         setHikeData(hikeDB.data);
       }
       catch (error) {
         console.log(error);
       }    
     }
-    fetchData();
+    fetchHikeData();
   }, []);
 
   //Declared Hike Type
@@ -65,7 +73,28 @@ export default function Index() {
     "trail_name": string,
   };
 
-  // console.log(hikeData.length)
+  //Declared Group Type
+  type Group = {
+    "created_at": string,
+    "created_by": number,
+    "group_description": string,
+    "group_host": string,
+    "group_id": number,
+    "group_name": string,
+    "start_time": string,
+    "trail_id": number,
+    "users_joined": Array<string>,   // list of usernames, change to list of user_id's if needed
+  };
+
+  //Declared Review Type
+  type Review = {
+    "review_id": number,
+    "trail_id": number,
+    "username": string,
+    "rating": number,
+    "review_text": string,
+    "review_date": string,
+  };
 
   // Map properties initialization
   const mapRef = useRef<MapView | null>(null);
@@ -131,6 +160,8 @@ export default function Index() {
     setMarkerState(true);
     // Transition to Map View
     pathViewSelect(false);
+    setReviewView("desc");
+    useHikeBottom(true);
   };
 
   // Handling marker selection
@@ -160,6 +191,84 @@ export default function Index() {
       console.error("Unable to update BottomSheet reference.");
     }
   }
+
+  // Selecting between Hikes or Groups on the bottom sheet
+  const [hikeBottom, useHikeBottom] = useState(true);
+
+  // Hike View
+  const hikeBottomSheet = (hike: Hike, index: number) => (
+      <View key={Number(hike.trail_id)} style={styles.contentContainer}>
+      <TouchableOpacity
+        onPress={(event) => (
+          onMarkerSelection({latitude: hike.start_lat, longitude: hike.start_lng}, index)
+        )}
+        style = {styles.hikeBottomContainer}
+        activeOpacity={0.8}
+      >
+        <Image 
+          source = {require('../../assets/images/exhike.jpg')}
+          style={styles.hikeBottomImage}
+        />
+        <Text style={styles.boldText}>
+          {hike.trail_name}
+        </Text>
+        <Text style={styles.hikeSubText}>
+          {hike.difficulty}{"\t"}{Number(hike.distance).toFixed(2)} mi{"\t"}    {hike.duration} min
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Group View
+  const groupBottomSheet = (group: Group) => (
+    <View key={Number(group.trail_id)} style={styles.contentContainer}>
+      <Text>
+        Kendrick Ng
+      </Text>
+    </View>
+  );
+
+  // Call this function to fetch a particular hikes reviews
+  const fetchReviews = async (trail_id: number) => {
+    try {
+      const revDB = await axios.get(API_URL + "reviews?trail_id=" + trail_id);
+      setReviewData(revDB.data);
+    }
+    catch (error) {
+      console.log(error);
+    }    
+  }
+
+  // Select Review or Group View
+  const [reviewView, setReviewView] = useState("desc");
+
+  const descriptionPage = (hikeDetails: Hike) => (
+    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+      <Text style={styles.bottomButtonText}>
+        Description Kendrick Ng: {hikeDetails.description}
+      </Text>
+      {/* display image from hike object */}
+      {/* add any other useful description */}
+    </View>
+  );
+
+  const reviewPage = (hikeDetails: Hike) => (
+    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+      <Text style={styles.bottomButtonText}>
+        Review Kendrick Ng
+      </Text>
+    {/* show each review similar to hikeBottomSheet function */}
+    </View>
+  );
+
+  const groupPage = (hikeDetails: Group) => (
+    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+      <Text style={styles.bottomButtonText}>
+        Group Kendrick Ng
+      </Text>
+    {/* show if available groups are present for this hike */}
+    </View>
+  );
 
   //UI Setup
   return (
@@ -230,31 +339,34 @@ export default function Index() {
           <Text style={styles.bottomSheetHeadline}>
             Near You
           </Text>
-          <BottomSheetScrollView>
-            {/* {hikeData.map(renderBottomSheet)} */}
-            {hikeData.map( (hike, index) => (
-              <View key={Number(hike.trail_id)} style={styles.contentContainer}>
-              <TouchableOpacity
-                onPress={(event) => (
-                  onMarkerSelection({latitude: hike.start_lat, longitude: hike.start_lng}, index)
-                )}
-                style = {styles.hikeBottomContainer}
-                activeOpacity={0.8}
+          <View style = {styles.bottomButtonLayout}> 
+              <Pressable 
+                style = {[
+                  styles.bottomButton, 
+                  hikeBottom && styles.bottomButtonPressed
+                ]}
+                onPressIn = {() => useHikeBottom(true)}
               >
-                <Image 
-                  source = {require('../../assets/images/exhike.jpg')}
-                  style={styles.hikeBottomImage}
-                />
-                <Text style={styles.boldText}>
-                  {hike.trail_name}
+                <Text style={styles.bottomButtonText}>
+                  Hikes
                 </Text>
-                <Text style={styles.hikeSubText}>
-                  {hike.difficulty}{"\t"}{Number(hike.distance).toFixed(2)} mi{"\t"}    {hike.duration} min
+              </Pressable>
+              <Pressable 
+                style = {[
+                  styles.bottomButton, 
+                  !hikeBottom && styles.bottomButtonPressed
+                ]}
+                onPressIn = {() => useHikeBottom(false)}
+              >
+                <Text style={styles.bottomButtonText}>
+                  Groups
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
-            ))
-            }
+          <BottomSheetScrollView>
+            {hikeBottom ? 
+            hikeData.map( (hike, index) => (hikeBottomSheet(hike, index)) ) : 
+            hikeData.map( (hike, index) => (hikeBottomSheet(hike, index)) )}
           </BottomSheetScrollView>
         </SafeAreaView>) : (
         <SafeAreaView style={styles.contentContainer}>
@@ -283,6 +395,57 @@ export default function Index() {
             {hikeDetails.difficulty} Hike {"\t"} Distance: {Number(hikeDetails.distance).toFixed(2)}
              mi {"\t"}    Duration: {hikeDetails.duration} min
           </Text>
+          <View style = {styles.bottomHikeButtonLayout}> 
+            <Pressable 
+              style = {[
+                styles.bottomHikeButtons, 
+                (reviewView === 'desc') && styles.bottomButtonPressed
+              ]}
+              onPressIn = {() => setReviewView("desc")}
+            >
+              <Text style={styles.bottomHikeButtonText}>
+                Description
+              </Text>
+            </Pressable>
+            <Pressable 
+              style = {[
+                styles.bottomHikeButtons, 
+                (reviewView === 'rev') && styles.bottomButtonPressed
+              ]}
+              onPressIn = {() => {
+                fetchReviews(hikeDetails.trail_id);
+                setReviewView("rev");
+                // console.log(reviewData);
+              }}
+            >
+              <Text style={styles.bottomHikeButtonText}>
+                Reviews
+              </Text>
+            </Pressable>
+            <Pressable 
+              style = {[
+                styles.bottomHikeButtons, 
+                (reviewView === 'group') && styles.bottomButtonPressed
+              ]}
+              onPressIn = {() => setReviewView("group")}
+            >
+              <Text style={styles.bottomHikeButtonText}>
+                Groups
+              </Text>
+            </Pressable>
+          </View>
+          <BottomSheetScrollView>
+            <View style = {styles.groupReviewView}>
+                {/* {reviewView ? 
+                hikeData.map( (hike, index) => (reviewPage()) ) : 
+                hikeData.map( (hike, index) => (groupPage()) )} */}
+                {
+                  reviewView === 'desc' ? descriptionPage(hikeDetails) :
+                  reviewView === 'rev' ? reviewPage(hikeDetails) :
+                  reviewView === 'group' ? groupPage(hikeDetails) : null
+                }
+            </View>
+          </BottomSheetScrollView>
         </SafeAreaView>
         )}
       </BottomSheet>
@@ -290,6 +453,15 @@ export default function Index() {
     </GestureHandlerRootView>
   );
 }
+
+
+// Andres Modal
+{/* <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.modalButton}>
+  <Text style={styles.hikeSubHeader}>
+    Leave A Review
+  </Text>
+</TouchableOpacity>
+<MyModal isOpen={modalVisible} onClose={() => setModalVisible(false)} /> */}
 
 //Styles
 const styles = StyleSheet.create({
@@ -334,6 +506,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "white",
     textAlign: "center",
+    marginBottom: 20,
   },
   hikeViewClose: {
     position: 'absolute',
@@ -362,5 +535,63 @@ const styles = StyleSheet.create({
     width: 350,
     borderRadius: 15,
     marginBottom: 5,
+  },
+  bottomButtonLayout: {
+    flexDirection: "row",
+    gap: 30,
+    height: "10%",
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  bottomButton: {
+    backgroundColor: "#222222",
+    borderRadius: 13,
+    width: "40%",
+    height: "65%",
+    justifyContent: 'center',
+  },
+  bottomButtonText: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "ultralight",
+    textAlign: "center",
+  },
+  bottomButtonPressed: {
+    backgroundColor: "#636363",
+  },
+  modalButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  groupBox: {
+    flex: 1,
+    backgroundColor: "green",
+  },
+  groupReviewView: {
+    flex: 1,
+    gap: 50,
+  },
+  bottomHikeButtonLayout: {
+    flexDirection: "row",
+    gap: 15,
+    height: "10%",
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 30
+  },
+  bottomHikeButtons: {
+    backgroundColor: "#222222",
+    borderRadius: 13,
+    width: "30%",
+    height: "60%",
+    justifyContent: 'center',
+  },
+  bottomHikeButtonText: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "ultralight",
+    textAlign: "center",
   },
 });
