@@ -2,10 +2,15 @@ import { Text, View, StyleSheet, Button, ImageBackground, TouchableOpacity, Moda
 import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from 'react-native-gesture-handler';
 import { createContext, useContext, useState } from "react";
 import { useForm, Controller } from 'react-hook-form';
-//import LoginContext from '../loginState';
-import { LoginContext } from '../loginState';
-import MyProvider from "../loginState";
 import axios from "axios";
+
+//import LoginContext from '../loginState';
+//import { LoginContext } from '../loginState';
+//import MyProvider from "../loginState";
+//import useAuth from '../loginState';
+import { useAuth, LoginContext } from "../loginState";
+
+import { SignUpComponent } from "../components/signup";
 
 // TODO: Make a global interface file for all interfaces
 // Guest session
@@ -22,15 +27,35 @@ const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
 
 export default function Profile() {
 
-  // Create context for login
-  // const {loginState, setLoginState} = useContext(LoginContext);
+  // Use context for login
+  const { authState, onLogin, onRegister, onLogout } = useAuth();
+
+  // Login function
+  const login = async (email: string, password: string) => {
+    const result = await onLogin!(email, password);
+    if (result && result.error) {
+      console.error(result.msg);
+    }
+    return result;
+  }
+
+  // Sign up function
+  const signup = async (username: string, email: string, password: string) => {
+    const result = await onRegister!(username, email, password);
+    if (result && result.error) {
+      console.error(result.msg);
+    } else {
+      setSignUpState(false);
+      onSubmit({"email": email, "password": password});
+    }
+    return result;
+  }
 
   // Bandaid
-  const [loginState, setLoginState] = useState<SessionProps>({});
   const [loggedIn, loginSuccessful] = useState<boolean>(false);
 
   // Login function
-  async function login(emailInput:string, passwordInput:string): Promise<any> {
+  /*async function login(emailInput:string, passwordInput:string): Promise<any> {
     try{
       const loginResponse = await axios.post(API_URL + "auth/login", {
         username: "",
@@ -43,17 +68,19 @@ export default function Profile() {
       console.error(error);
       return error
     }
-  }
+  }*/
 
   // Logout function
-  const onLogout = () => {
+  const logout = () => {
     loginSuccessful(false);
-    setLoginState({});
+    onLogout!();
   }
 
   // Modal state
   const [loadingState, setLoadingState] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("Loading...");
+
+  const [signUpState, setSignUpState] = useState<boolean>(false);
 
   //console.log("Login State: ");
   // console.log(loginState);
@@ -73,22 +100,8 @@ export default function Profile() {
     setLoadingState(true);
     login(data.email, data.password).then(
       response => {
-        //console.log(response.status);
-        //console.log(response.data);
-        /*setLoginState({
-          accessToken: response.data.
-          refreshToken: any,
-          username: string,
-          email: string,
-        })*/
-        // Login Failed
+        // Login Successful
         if(response.status == 200){
-          setLoginState({
-            accessToken: response.data.tokens.access,
-            refreshToken: response.data.tokens.refresh,
-            username: response.data.username,
-            email: data.email
-          });
           loginSuccessful(true);
         }
         else{
@@ -126,6 +139,21 @@ export default function Profile() {
           <View style={styles.overlay}>
             <View style={styles.modal}>
               <Text> {modalText} </Text>
+            </View>
+          </View>
+        </Modal>
+        <Modal
+          visible={signUpState}
+          transparent={false}
+          animationType={"slide"}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.modal}>
+              <SignUpComponent
+                signUp={(username: string, email: string, password: string) => 
+                signup(username, email, password)}
+                close={() => setSignUpState(false)}
+              />
             </View>
           </View>
         </Modal>
@@ -180,7 +208,9 @@ export default function Profile() {
               Sign In
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} >
+          <TouchableOpacity 
+          style={styles.button} 
+          onPress={() => setSignUpState(true)}>
             <Text style={styles.buttontext}>
               Sign Up
             </Text>
@@ -195,11 +225,11 @@ export default function Profile() {
       >
         <View style={styles.profileContainer}>
           <Image source={require('../../assets/images/default-profile-pic.jpg')} style={styles.profilePicture} />
-          <Text style={styles.name}>{loginState.username}</Text>
-          <Text style={styles.email}>{loginState.email}</Text>
+          <Text style={styles.name}>{authState?.username ? authState?.username : null}</Text>
+          <Text style={styles.email}>{authState?.email ? authState?.email : null}</Text>
           <TouchableOpacity 
           style={styles.logout}
-          onPress={onLogout}>
+          onPress={logout}>
             <Text style={styles.buttontext}>
               Log Out
             </Text>

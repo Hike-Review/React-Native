@@ -1,8 +1,20 @@
-import { createContext, useState } from "react";
+import axios from "axios";
+import { createContext, useContext, useState } from "react";
 //import * as interfaces from "../assets/interfaces";
+
+// API URL
+const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/"
 
 // Guest session
 interface SessionProps {
+    authState?: LoginState,
+    onRegister?: (username: string, email: string, password: string) => Promise<any>;
+    onLogin?: (email: string, password: string) => Promise<any>;
+    onLogout?: () => Promise<any>;
+}
+
+// Login State
+interface LoginState {
     accessToken?: any,
     refreshToken?: any,
     username?: string,
@@ -13,22 +25,71 @@ interface SessionProps {
 // const [loginState, setLoginState] = useState<SessionProps>({});
 
 // Create context for login
-export const LoginContext = createContext({
-    loginState: {},
-    setLoginState: (newLoginState: SessionProps) => {
-        console.log("New Login State: " + newLoginState);
-    }
-});
+export const LoginContext = createContext<SessionProps>({});
 
-const MyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [loginState, setLoginState] = useState({});
+export const useAuth = () => {
+    return useContext(LoginContext);
+}
+
+const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [loginState, setLoginState] = useState<LoginState>({});
 
     console.log("login state in provider: " + loginState);
 
+    const register = async (username: string, email: string, password: string) => {
+        try{
+            // Register
+            return await axios.post(API_URL + "auth/register", {
+                "username": username, 
+                "email": email,
+                "password": password
+            });
+        } catch(e) {
+            return { error: true, msg: (e as any).response.data.msg };
+        }
+    }
+
+    const login = async (email: string, password: string) => {
+        try{
+            // Login
+            const loginResponse = await axios.post(API_URL + "auth/login", {
+              "username": "",
+              "email": email,
+              "password": password
+            });
+
+            setLoginState({
+                "accessToken": loginResponse.data.tokens.access,
+                "refreshToken": loginResponse.data.tokens.refresh,
+                "username": loginResponse.data.username,
+                "email": email
+            });
+            
+            axios.defaults.headers.common['Authorization'] = 'Bearer ' + loginResponse.data.tokens.access;
+            return loginResponse
+        } catch(e) {
+            return { error: true, msg: (e as any).response.data.msg };
+        }
+    }
+
+    const logout = async (email: string, password: string) => {
+        try{
+            axios.defaults.headers.common['Authorization'] = "";
+            setLoginState({});
+        } catch(e) {
+            return { error: true, msg: (e as any).response.data.msg };
+        }
+    }
+
     const contextValue: any = {
-      loginState,
-      setLoginState,
+      onRegister: register,
+      onLogin: login,
+      onLogout: logout,
+      authState: loginState
     };
+
+    console.log("Login Context: ");
+    console.log(contextValue);
 
     return (
       <LoginContext.Provider value={contextValue}>
@@ -37,4 +98,4 @@ const MyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   };
 
-export default MyProvider;
+export default LoginProvider;
