@@ -1,0 +1,9 @@
+// Interfaces for our project
+
+// Guest session
+interface SessionProps {
+    accessToken?: any,
+    refreshToken?: any,
+    username?: string,
+    email?: string,
+}

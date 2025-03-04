@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, TouchableOpacity, Image, ScrollView } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView} from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -10,8 +10,10 @@ import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-nativ
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 
-import MyModal, { Review } from '../modal';
+import { Review } from '../modal';
+import MyModal from '../modal';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
 
 // Add interfacing
 
@@ -30,7 +32,6 @@ export default function Index() {
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
-
   const sheetRef = useRef<BottomSheet>(null);
 
   // Markers view
@@ -41,49 +42,70 @@ export default function Index() {
   const [hikeDetails, setHike] = useState<any>("ERROR");
   const [pathViewSelected, pathViewSelect] = useState<boolean>(false);
 
-  // Temp Data
-  const hikes = [
-    {
-      "created_at": "2025-02-06 11:07:16",
-      "creator_id": "1",
-      "description": "Cool",
-      "difficulty": "Easy",
-      "distance": "999.99",
-      "duration": "5.0",
-      "end_lat": 36.98910805721358, 
-      "end_lng": -122.04890606463675,
-      "rating": "0.5",
-      "routing_points": [
-        [
-          36.98910805721358, 
-          -122.04890606463675
-        ],
-        [
-          36.98762120726677, -122.04858956396757
-        ],
-        [
-          36.986371602639785,
-          -122.0483819712592,
-        ]
-      ],
-      "start_lat": 36.986371602639785,
-      "start_lng": -122.0483819712592,
-      "tags": "None",
-      "trail_id": "1",
-      "trail_name": "Test Trail A"
+  // Axios Server Calling
+  const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
+
+  const [hikeData, setHikeData] = useState<Hike[]>([]);
+  const [groupData, setGroupData] = useState<Group[]>([]);
+  const [reviewData, setReviewData] = useState<Review[]>([]);
+
+  // Fetch Hikes from Database
+  useEffect(() => {
+    const fetchHikeData = async () => {
+      try {
+        const hikeDB = await axios.get(API_URL + "hikes");
+        // const groupDB = await axios.get(API_URL + "groups");
+        // setGroupData(groupDB.data);
+        setHikeData(hikeDB.data);
+      }
+      catch (error) {
+        console.log(error);
+      }    
     }
-  ]
+    fetchHikeData();
+  }, []);
 
-  const data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+  //Declared Hike Type
+  type Hike = {
+    "created_at": string,
+    "creator_id": string,
+    "description": string,
+    "difficulty": string,
+    "distance": string,
+    "duration": string,
+    "end_lat": number,
+    "end_lng": number,
+    "rating": string,
+    "routing_points": Array<Array<number>>,
+    "start_lat": number,
+    "start_lng": number,
+    "tags": string,
+    "trail_id": string,
+    "trail_name": string,
+  };
 
-  const renderItem = useCallback(
-    (item: any) => (
-      <View key={item} style={styles.itemContainer}>
-        <Text>{item}</Text>
-      </View>
-    ),
-    []
-  );
+  //Declared Group Type
+  type Group = {
+    "created_at": string,
+    "created_by": number,
+    "group_description": string,
+    "group_host": string,
+    "group_id": number,
+    "group_name": string,
+    "start_time": string,
+    "trail_id": number,
+    "users_joined": Array<string>,   // list of usernames, change to list of user_id's if needed
+  };
+
+  //Declared Review Type
+  // type Review = {
+  //   "review_id": number,
+  //   "trail_id": number,
+  //   "username": string,
+  //   "rating": number,
+  //   "review_text": string,
+  //   "review_date": string,
+  // };
 
   // Map properties initialization
   const mapRef = useRef<MapView | null>(null);
@@ -149,6 +171,8 @@ export default function Index() {
     setMarkerState(true);
     // Transition to Map View
     pathViewSelect(false);
+    setReviewView("desc");
+    useHikeBottom(true);
   };
 
   // Handling marker selection
@@ -168,8 +192,8 @@ export default function Index() {
       mapRef.current.animateToRegion(region, 1000);
     }
     // Display Path using hike details
-    setPathView(hikes[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
-    setHike(hikes[key]);
+    setPathView(hikeData[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
+    setHike(hikeData[key]);
     // Update Sheet Ref
     try{
       sheetRef.current?.snapToIndex(1);
@@ -178,6 +202,121 @@ export default function Index() {
       console.error("Unable to update BottomSheet reference.");
     }
   }
+
+  // Selecting between Hikes or Groups on the bottom sheet
+  const [hikeBottom, useHikeBottom] = useState(true);
+
+  // Hike View
+  const hikeBottomSheet = (hike: Hike, index: number) => (
+      <View key={Number(hike.trail_id)} style={styles.contentContainer}>
+      <TouchableOpacity
+        onPress={(event) => (
+          onMarkerSelection({latitude: hike.start_lat, longitude: hike.start_lng}, index)
+        )}
+        style = {styles.hikeBottomContainer}
+        activeOpacity={0.8}
+      >
+        <Image 
+          source = {require('../../assets/images/exhike.jpg')}
+          style={styles.hikeBottomImage}
+        />
+        <Text style={styles.boldText}>
+          {hike.trail_name}
+        </Text>
+        <Text style={styles.hikeSubText}>
+          {hike.difficulty}{"\t"}{Number(hike.distance).toFixed(2)} mi{"\t"}    {hike.duration} min
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Group View
+  const groupBottomSheet = (group: Group) => (
+    <View key={Number(group.trail_id)} style={styles.contentContainer}>
+      <Text>
+        Kendrick Ng
+      </Text>
+    </View>
+  );
+
+  // Call this function to fetch a particular hikes reviews
+  const fetchReviews = async (trail_id: number) => {
+    try {
+      const revDB = await axios.get(API_URL + "reviews?trail_id=" + trail_id);
+      setReviewData(revDB.data);
+    }
+    catch (error) {
+      console.log(error);
+    }    
+  }
+
+  // Select Review or Group View
+  const [reviewView, setReviewView] = useState("desc");
+
+  const descriptionPage = (hikeDetails: Hike) => (
+    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+      <Text style={styles.bottomButtonText}>
+        Description Kendrick Ng: {hikeDetails.description}
+      </Text>
+      {/* display image from hike object */}
+      {/* add any other useful description */}
+    </View>
+  );
+
+  const reviewPage = (hikeDetails: Hike) => (
+     <View style={styles.container}>
+          
+          {/* Review Button */}
+          <TouchableOpacity style={styles.reviewButton} onPress={() => setModalVisible(true)}>
+            <Text style={styles.reviewButtonText}>Leave a Review</Text>
+          </TouchableOpacity>
+
+          {/* Render the modal */}
+          <MyModal
+            isOpen={modalVisible}
+            onClose={() => setModalVisible(false)}
+            onReviewSubmit={handleReviewSubmit}
+          />
+
+          {/* Render submitted reviews */}
+          <ScrollView style={styles.reviewList}>
+            {reviews.map((rev, index) => (
+              <View key={index} style={styles.reviewItem}>
+                <Image source={{ uri: rev.userProfile }} style={styles.profileImage} />
+                <View style={styles.reviewContent}>
+                  <Text style={styles.userName}>{rev.userName}</Text>
+                  <View style={styles.starDisplay}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <FontAwesome
+                        key={star}
+                        name={star <= rev.rating ? "star" : "star-o"}
+                        size={20}
+                        color="gold"
+                      />
+                    ))}
+                  </View>
+                  <Text style={styles.reviewText}>{rev.review}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+    // <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+    //   <Text style={styles.bottomButtonText}>
+    //     Review Kendrick Ng
+    //   </Text>
+    // {/* show each review similar to hikeBottomSheet function */}
+    // </View>
+  );
+
+  const groupPage = (hikeDetails: Group) => (
+    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+      <Text style={styles.bottomButtonText}>
+        Group Kendrick Ng
+      </Text>
+    {/* show if available groups are present for this hike */}
+    </View>
+  );
 
   //UI Setup
   return (
@@ -191,7 +330,7 @@ export default function Index() {
         showsUserLocation
       >
         { markersShown ? 
-          hikes.map((hike, index) => (
+          hikeData.map((hike, index) => (
             <Marker
             key={hike.trail_id} 
             coordinate={{
@@ -246,10 +385,36 @@ export default function Index() {
         { !pathViewSelected ? (
         <SafeAreaView style={styles.contentContainer}>
           <Text style={styles.bottomSheetHeadline}>
-            Near You{"\n"}
+            Near You
           </Text>
+          <View style = {styles.bottomButtonLayout}> 
+              <Pressable 
+                style = {[
+                  styles.bottomButton, 
+                  hikeBottom && styles.bottomButtonPressed
+                ]}
+                onPressIn = {() => useHikeBottom(true)}
+              >
+                <Text style={styles.bottomButtonText}>
+                  Hikes
+                </Text>
+              </Pressable>
+              <Pressable 
+                style = {[
+                  styles.bottomButton, 
+                  !hikeBottom && styles.bottomButtonPressed
+                ]}
+                onPressIn = {() => useHikeBottom(false)}
+              >
+                <Text style={styles.bottomButtonText}>
+                  Groups
+                </Text>
+              </Pressable>
+            </View>
           <BottomSheetScrollView>
-            {data.map(renderItem)}
+            {hikeBottom ? 
+            hikeData.map( (hike, index) => (hikeBottomSheet(hike, index)) ) : 
+            hikeData.map( (hike, index) => (hikeBottomSheet(hike, index)) )}
           </BottomSheetScrollView>
         </SafeAreaView>) : (
         <SafeAreaView style={styles.contentContainer}>
@@ -266,7 +431,7 @@ export default function Index() {
                 size = {25}
                 style={{
                   position: "absolute",
-                  top: 9,
+                  top: 0,
                   left: 13,
                 }}
               />
@@ -275,47 +440,60 @@ export default function Index() {
             {hikeDetails.trail_name}
           </Text>
           <Text style={styles.hikeSubHeader}>
-            {hikeDetails.difficulty} Hike; Distance: {hikeDetails.distance}mi; Duration: {hikeDetails.duration}
+            {hikeDetails.difficulty} Hike {"\t"} Distance: {Number(hikeDetails.distance).toFixed(2)}
+             mi {"\t"}    Duration: {hikeDetails.duration} min
           </Text>
-          <View style={styles.container}>
-          
-          {/* Review Button */}
-          <TouchableOpacity style={styles.reviewButton} onPress={() => setModalVisible(true)}>
-            <Text style={styles.reviewButtonText}>Leave a Review</Text>
-          </TouchableOpacity>
-
-          {/* Render the modal */}
-          <MyModal
-            isOpen={modalVisible}
-            onClose={() => setModalVisible(false)}
-            onReviewSubmit={handleReviewSubmit}
-          />
-
-          {/* Render submitted reviews */}
-          <ScrollView style={styles.reviewList}>
-            {reviews.map((rev, index) => (
-              <View key={index} style={styles.reviewItem}>
-                <Image source={{ uri: rev.userProfile }} style={styles.profileImage} />
-                <View style={styles.reviewContent}>
-                  <Text style={styles.userName}>{rev.userName}</Text>
-                  <View style={styles.starDisplay}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <FontAwesome
-                        key={star}
-                        name={star <= rev.rating ? "star" : "star-o"}
-                        size={20}
-                        color="gold"
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.reviewText}>{rev.review}</Text>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-          
-
+          <View style = {styles.bottomHikeButtonLayout}> 
+            <Pressable 
+              style = {[
+                styles.bottomHikeButtons, 
+                (reviewView === 'desc') && styles.bottomButtonPressed
+              ]}
+              onPressIn = {() => setReviewView("desc")}
+            >
+              <Text style={styles.bottomHikeButtonText}>
+                Description
+              </Text>
+            </Pressable>
+            <Pressable 
+              style = {[
+                styles.bottomHikeButtons, 
+                (reviewView === 'rev') && styles.bottomButtonPressed
+              ]}
+              onPressIn = {() => {
+                fetchReviews(hikeDetails.trail_id);
+                setReviewView("rev");
+                // console.log(reviewData);
+              }}
+            >
+              <Text style={styles.bottomHikeButtonText}>
+                Reviews
+              </Text>
+            </Pressable>
+            <Pressable 
+              style = {[
+                styles.bottomHikeButtons, 
+                (reviewView === 'group') && styles.bottomButtonPressed
+              ]}
+              onPressIn = {() => setReviewView("group")}
+            >
+              <Text style={styles.bottomHikeButtonText}>
+                Groups
+              </Text>
+            </Pressable>
+          </View>
+          <BottomSheetScrollView>
+            <View style = {styles.groupReviewView}>
+                {/* {reviewView ? 
+                hikeData.map( (hike, index) => (reviewPage()) ) : 
+                hikeData.map( (hike, index) => (groupPage()) )} */}
+                {
+                  reviewView === 'desc' ? descriptionPage(hikeDetails) :
+                  reviewView === 'rev' ? reviewPage(hikeDetails) :
+                  reviewView === 'group' ? groupPage(hikeDetails) : null
+                }
+            </View>
+          </BottomSheetScrollView>
         </SafeAreaView>
         )}
       </BottomSheet>
@@ -323,6 +501,15 @@ export default function Index() {
     </GestureHandlerRootView>
   );
 }
+
+
+// Andres Modal
+{/* <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.modalButton}>
+  <Text style={styles.hikeSubHeader}>
+    Leave A Review
+  </Text>
+</TouchableOpacity>
+<MyModal isOpen={modalVisible} onClose={() => setModalVisible(false)} /> */}
 
 //Styles
 const styles = StyleSheet.create({
@@ -345,9 +532,11 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   bottomSheetHeadline: {
-    fontSize: 17,
+    fontSize: 20,
     paddingTop: 0,
-    color: "white"
+    color: "white",
+    fontWeight: "bold",
+    marginBottom: 12,
   },
   button: {
     position: 'absolute',
@@ -363,7 +552,9 @@ const styles = StyleSheet.create({
   },
   hikeSubHeader: {
     fontSize: 12,
-    color: "white"
+    color: "white",
+    textAlign: "center",
+    marginBottom: 20,
   },
   hikeViewClose: {
     position: 'absolute',
@@ -373,6 +564,85 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignContent: "center",
   },
+  boldText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 2.5,
+  },
+  hikeBottomContainer: {
+    padding: 6,
+    margin: 6,
+    backgroundColor: "black",
+    marginBottom: 15,
+  },
+  hikeSubText: {
+    color: "white",
+  },
+  hikeBottomImage: {
+    width: 350,
+    borderRadius: 15,
+    marginBottom: 5,
+  },
+  bottomButtonLayout: {
+    flexDirection: "row",
+    gap: 30,
+    height: "10%",
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  bottomButton: {
+    backgroundColor: "#222222",
+    borderRadius: 13,
+    width: "40%",
+    height: "65%",
+    justifyContent: 'center',
+  },
+  bottomButtonText: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "ultralight",
+    textAlign: "center",
+  },
+  bottomButtonPressed: {
+    backgroundColor: "#636363",
+  },
+  // modalButton: {
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  groupBox: {
+    flex: 1,
+    backgroundColor: "green",
+  },
+  groupReviewView: {
+    flex: 1,
+    gap: 50,
+  },
+  bottomHikeButtonLayout: {
+    flexDirection: "row",
+    gap: 15,
+    height: "10%",
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 30
+  },
+  bottomHikeButtons: {
+    backgroundColor: "#222222",
+    borderRadius: 13,
+    width: "30%",
+    height: "60%",
+    justifyContent: 'center',
+  },
+  bottomHikeButtonText: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "ultralight",
+    textAlign: "center",
+  },
+  
   modalButton: {
     position: 'absolute',
     bottom: 50,
@@ -388,7 +658,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'white', // You can use color names, HEX codes, or rgba values.
-    
+
   },
   reviewButtonText: {
     color: 'white',
