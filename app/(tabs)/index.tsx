@@ -9,15 +9,26 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
-import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
 
+import { Review } from '../modal';
 import MyModal from '../modal';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
 
 // Add interfacing
 
 export default function Index() {
+
   // Add modal visibility state
   const [modalVisible, setModalVisible] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+  // Callback passed to the modal after a successful review submission.
+  const handleReviewSubmit = (newReview: Review) => {
+    setReviews(prevReviews => [...prevReviews, newReview]);
+    setModalVisible(false);
+  };
+
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
@@ -87,14 +98,14 @@ export default function Index() {
   };
 
   //Declared Review Type
-  type Review = {
-    "review_id": number,
-    "trail_id": number,
-    "username": string,
-    "rating": number,
-    "review_text": string,
-    "review_date": string,
-  };
+  // type Review = {
+  //   "review_id": number,
+  //   "trail_id": number,
+  //   "username": string,
+  //   "rating": number,
+  //   "review_text": string,
+  //   "review_date": string,
+  // };
 
   // Map properties initialization
   const mapRef = useRef<MapView | null>(null);
@@ -253,12 +264,49 @@ export default function Index() {
   );
 
   const reviewPage = (hikeDetails: Hike) => (
-    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
-      <Text style={styles.bottomButtonText}>
-        Review Kendrick Ng
-      </Text>
-    {/* show each review similar to hikeBottomSheet function */}
-    </View>
+     <View style={styles.container}>
+          
+          {/* Review Button */}
+          <TouchableOpacity style={styles.reviewButton} onPress={() => setModalVisible(true)}>
+            <Text style={styles.reviewButtonText}>Leave a Review</Text>
+          </TouchableOpacity>
+
+          {/* Render the modal */}
+          <MyModal
+            isOpen={modalVisible}
+            onClose={() => setModalVisible(false)}
+            onReviewSubmit={handleReviewSubmit}
+          />
+
+          {/* Render submitted reviews */}
+          <ScrollView style={styles.reviewList}>
+            {reviews.map((rev, index) => (
+              <View key={index} style={styles.reviewItem}>
+                <Image source={{ uri: rev.userProfile }} style={styles.profileImage} />
+                <View style={styles.reviewContent}>
+                  <Text style={styles.userName}>{rev.userName}</Text>
+                  <View style={styles.starDisplay}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <FontAwesome
+                        key={star}
+                        name={star <= rev.rating ? "star" : "star-o"}
+                        size={20}
+                        color="gold"
+                      />
+                    ))}
+                  </View>
+                  <Text style={styles.reviewText}>{rev.review}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+    // <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+    //   <Text style={styles.bottomButtonText}>
+    //     Review Kendrick Ng
+    //   </Text>
+    // {/* show each review similar to hikeBottomSheet function */}
+    // </View>
   );
 
   const groupPage = (hikeDetails: Group) => (
@@ -560,10 +608,10 @@ const styles = StyleSheet.create({
   bottomButtonPressed: {
     backgroundColor: "#636363",
   },
-  modalButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  // modalButton: {
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
   groupBox: {
     flex: 1,
     backgroundColor: "green",
@@ -593,5 +641,59 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "ultralight",
     textAlign: "center",
+  },
+  
+  modalButton: {
+    position: 'absolute',
+    bottom: 50,
+    alignSelf: 'center',
+    padding: 15,
+    backgroundColor: 'black',
+    borderRadius: 10,
+  },
+  reviewButton: {
+    backgroundColor: 'black',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white', // You can use color names, HEX codes, or rgba values.
+
+  },
+  reviewButtonText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  reviewList: {
+    marginTop: 20,
+  },
+  //comments posted
+  reviewItem: {
+    flex: 500,
+    flexDirection: 'row',
+    marginVertical: 10,
+    backgroundColor: '#f7f7f7',
+    padding: 10,
+    borderRadius: 5,
+  },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
+  },
+  reviewContent: {
+    flex: 1,
+  },
+  userName: {
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  starDisplay: {
+    flexDirection: 'row',
+    marginBottom: 5,
+  },
+  reviewText: {
+    fontSize: 12,
   },
 });
