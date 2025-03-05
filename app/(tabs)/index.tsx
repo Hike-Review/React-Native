@@ -21,6 +21,10 @@ import { useAuth } from "../components/loginState";
 export default function Index() {
   // Use context for login
   const { authState } = useAuth();
+  
+  const loggedIn = () => {
+    return authState?.accessToken
+  }
 
   // Add modal visibility state
   const [modalVisible, setModalVisible] = useState(false);
@@ -44,6 +48,7 @@ export default function Index() {
   const [displayedPath, setPathView] = useState<LatLng[]>([]);
   const [hikeDetails, setHike] = useState<any>("ERROR");
   const [pathViewSelected, pathViewSelect] = useState<boolean>(false);
+  const [favoriteIndicator, setFavoriteIndicator] = useState<"red" | "white">("white");
 
   // Axios Server Calling
   const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
@@ -197,6 +202,13 @@ export default function Index() {
     // Display Path using hike details
     setPathView(hikeData[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
     setHike(hikeData[key]);
+    // Check if hike selected is favorited
+    if(authState!.favoriteHikes!.includes(hikeData[key].trail_name)){
+      setFavoriteIndicator("red");
+    }
+    else{
+      setFavoriteIndicator("white");
+    }
     // Update Sheet Ref
     try{
       sheetRef.current?.snapToIndex(1);
@@ -204,6 +216,27 @@ export default function Index() {
     catch{
       console.error("Unable to update BottomSheet reference.");
     }
+  }
+
+  // Add/Remove favorites
+  const updateUserFavorites = (hike_name: string) => {
+    console.log(hike_name);
+    try{
+      if(authState!.favoriteHikes!.includes(hike_name)){
+        let idx = authState!.favoriteHikes!.indexOf(hike_name);
+        if (idx > -1) {
+          authState!.favoriteHikes!.splice(idx, 1);
+        }
+        setFavoriteIndicator("white");
+      }
+      else{
+        authState!.favoriteHikes!.push(hike_name);
+        setFavoriteIndicator("red");
+      }
+    } catch(error){
+      console.error(error);
+    }
+    console.log(authState?.favoriteHikes);
   }
 
   // Selecting between Hikes or Groups on the bottom sheet
@@ -446,6 +479,26 @@ export default function Index() {
             {hikeDetails.difficulty} Hike {"\t"} Distance: {Number(hikeDetails.distance).toFixed(2)}
              mi {"\t"}    Duration: {hikeDetails.duration} min
           </Text>
+          {loggedIn() ? 
+          <TouchableOpacity
+            style={styles.hikeFavorite}
+            onPress={() => {updateUserFavorites(hikeDetails.trail_name)}}
+            hitSlop={{ 
+              top: 50, bottom: 20, left: 50, right: 20
+            }}
+            >
+              <Icon
+                name="heart"
+                color={favoriteIndicator}
+                size = {25}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 13,
+                }}
+              />
+          </TouchableOpacity> : null
+          }
           <View style = {styles.bottomHikeButtonLayout}> 
             <Pressable 
               style = {[
@@ -564,6 +617,14 @@ const styles = StyleSheet.create({
     right: 333,
     backgroundColor: 'black',
     padding: 25,
+    borderRadius: 17,
+    alignContent: "center",
+  },
+  hikeFavorite: {
+    position: 'absolute',
+    left: 333,
+    backgroundColor: 'black',
+    padding: 10,
     borderRadius: 17,
     alignContent: "center",
   },

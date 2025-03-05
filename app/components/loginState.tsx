@@ -11,7 +11,14 @@ interface SessionProps {
     onRegister?: (username: string, email: string, password: string) => Promise<any>;
     onLogin?: (email: string, password: string) => Promise<any>;
     onLogout?: () => Promise<any>;
-}
+};
+
+// Group State
+interface GroupAttendance {
+    group_name: string,
+    start_time: string,
+    trail_name: string
+};
 
 // Login State
 interface LoginState {
@@ -19,7 +26,9 @@ interface LoginState {
     refreshToken?: any,
     username?: string,
     email?: string,
-    password?: string
+    password?: string,
+    favoriteHikes?: Array<string>,
+    scheduledHikes?: Array<GroupAttendance>
 }
 
 // const [loginState, setLoginState] = useState<SessionProps>({});
@@ -58,14 +67,23 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               "password": password
             });
 
-            setLoginState({
-                "accessToken": loginResponse.data.tokens.access,
-                "refreshToken": loginResponse.data.tokens.refresh,
-                "username": loginResponse.data.username,
-                "email": email
-            });
-            
-            axios.defaults.headers.common['Authorization'] = 'Bearer ' + loginResponse.data.tokens.access;
+            if(loginResponse.status == 200){
+                axios.defaults.headers.common['Authorization'] = 'Bearer ' + loginResponse.data.tokens.access;
+                axios.get(API_URL + "auth/identity").then(
+                    (response) => {
+                        console.log(response);
+                        if(response.status == 200){
+                            setLoginState({
+                                "accessToken": loginResponse.data.tokens.access,
+                                "refreshToken": loginResponse.data.tokens.refresh,
+                                "username": response.data.user_details.username,
+                                "email": email,
+                                "favoriteHikes": response.data.user_details.favorite_hikes
+                            });
+                        }
+                    }
+                );  
+            }
             return loginResponse
         } catch(e) {
             return { error: true, msg: (e as any).response.data.msg };
