@@ -14,10 +14,13 @@ import { Review } from '../modal';
 import MyModal from '../modal';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
+import { useAuth } from "../components/loginState";
 
 // Add interfacing
 
 export default function Index() {
+  // Use context for login
+  const { authState } = useAuth();
 
   // Add modal visibility state
   const [modalVisible, setModalVisible] = useState(false);
