@@ -14,6 +14,7 @@ import { Review } from '../modal';
 import MyModal from '../modal';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
+import { format, add, sub } from 'date-fns';
 
 // Add interfacing
 
@@ -29,9 +30,8 @@ export default function Index() {
     setModalVisible(false);
   };
 
-
   // BottomSheet properties
-  const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
+  const snapPoints = useMemo(() => ["8%", "24.%", "50%", "90%"], []);
   const sheetRef = useRef<BottomSheet>(null);
 
   // Markers view
@@ -65,6 +65,7 @@ export default function Index() {
     fetchHikeData();
   }, []);
 
+
   //Declared Hike Type
   type Hike = {
     "created_at": string,
@@ -87,13 +88,15 @@ export default function Index() {
   //Declared Group Type
   type Group = {
     "created_at": string,
-    "created_by": number,
+    "created_by": string,     //number or string?
     "group_description": string,
     "group_host": string,
-    "group_id": number,
+    "group_id": string,       //number or string?
     "group_name": string,
     "start_time": string,
-    "trail_id": number,
+    "total_users_joined": number;
+    "trail_id": string,
+    "trail_name": string,
     "users_joined": Array<string>,   // list of usernames, change to list of user_id's if needed
   };
 
@@ -201,6 +204,7 @@ export default function Index() {
     catch{
       console.error("Unable to update BottomSheet reference.");
     }
+    fetchGroups(hikeData[key].trail_id);
   }
 
   // Selecting between Hikes or Groups on the bottom sheet
@@ -232,35 +236,93 @@ export default function Index() {
 
   // Group View
   const groupBottomSheet = (group: Group) => (
-    <View key={Number(group.trail_id)} style={styles.contentContainer}>
+    <View key={Number(group.group_id)} style={styles.contentContainer}>
       <Text>
         Kendrick Ng
       </Text>
+      <TouchableOpacity
+        style={styles.groupSelect}
+        activeOpacity={0.8}
+      >
+        <Text>
+          {"\n"}
+          {group.created_at} {"\n"}
+          {group.created_by} {"\n"}
+          {group.group_description} {"\n"}
+          {group.group_host} {"\n"}
+          {group.group_id} {"\n"}
+          {group.group_name} {"\n"}
+          {group.start_time} {"\n"}
+          {group.total_users_joined} {"\n"}
+          {group.trail_id} {"\n"}
+          {group.trail_name} {"\n"}
+          {group.users_joined} {"\n"}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
   // Call this function to fetch a particular hikes reviews
-  const fetchReviews = async (trail_id: number) => {
+  const fetchReviews = async (trail_id: string) => {
     try {
-      const revDB = await axios.get(API_URL + "reviews?trail_id=" + trail_id);
+      const revDB = await axios.get(API_URL + "reviews", {params: {trail_id: trail_id}});
+      // const revDB = await axios.get(API_URL + "reviews?trail_id=" + trail_id);
       setReviewData(revDB.data);
     }
     catch (error) {
       console.log(error);
     }    
-  }
+  };
+
+  // Acquire date 
+  const rawCurrentDate = new Date();
+  // const formattedDate = format(currentDate, 'yyyy-MM-dd hh-mm-ss');
+  const startDate = format(rawCurrentDate, 'yyyy-MM-dd');
+  const addDate = add(startDate, {days:8});
+  const endDate = format(addDate, 'yyyy-MM-dd');
+  // console.log(currentDate);
+  // console.log(futureDate);
+
+  const incrementData = (start: Date, end: Date) => {
+    const addStart = add(start, {days:8});
+    const addEnd = add(end, {days:8});
+  };
+
+  const decrementData = (start: Date, end: Date) => {
+    const subStart = sub(start, {days:8});
+    const subEnd = sub(end, {days:8});
+    // const endDate = format(start, 'yyyy-MM-dd');
+  };
+
+  // Call this function to fetch a particular hikes reviews
+  const fetchGroups = async (trail_id: string) => {
+    try {
+      const groupDB = await axios.get(API_URL + "groups", {
+        params: {
+          start_date_range: startDate,
+          // end_date_range: endDate,
+          end_date_range: "2040-03-03",
+        }
+      });
+      setGroupData(groupDB.data);
+      // console.log(groupDB.data);
+    }
+    catch (error) {
+      console.log(error);
+    }    
+  };
 
   // Select Review or Group View
   const [reviewView, setReviewView] = useState("desc");
 
   const descriptionPage = (hikeDetails: Hike) => (
-    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+    <ScrollView>
       <Text style={styles.bottomButtonText}>
         Description Kendrick Ng: {hikeDetails.description}
       </Text>
       {/* display image from hike object */}
       {/* add any other useful description */}
-    </View>
+    </ScrollView>
   );
 
   const reviewPage = (hikeDetails: Hike) => (
@@ -309,11 +371,50 @@ export default function Index() {
     // </View>
   );
 
-  const groupPage = (hikeDetails: Group) => (
-    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
-      <Text style={styles.bottomButtonText}>
-        Group Kendrick Ng
-      </Text>
+  const groupPage = (groups: Group[]) => (
+    <View style={styles.rangeContainer}>
+      <View style={styles.rangeTitle}>
+        <TouchableOpacity
+            style={styles.dateLeftRight}
+            onPress={resetLocation}
+            >
+            <Icon
+              name="arrow-left"
+              color={"white"}
+              size = {25}
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 13,
+              }}
+            />
+          </TouchableOpacity>
+          <Text style={styles.rangeText}>
+            Kendrick Ng
+          </Text>
+          <TouchableOpacity
+            style={styles.dateLeftRight}
+            onPress={resetLocation}
+            >
+            <Icon
+              name="arrow-right"
+              color={"white"}
+              size = {25}
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 13,
+              }}
+            />
+          </TouchableOpacity>
+      </View>
+      <ScrollView>
+        
+        {/* .map function goes here*/}
+        {/* hikeData.map( (hike, index) => (hikeBottomSheet(hike, index)) ) :  */}
+        {groupData.map((group) => (groupBottomSheet(group)) )}
+        
+      </ScrollView>
     {/* show if available groups are present for this hike */}
     </View>
   );
@@ -461,7 +562,7 @@ export default function Index() {
                 (reviewView === 'rev') && styles.bottomButtonPressed
               ]}
               onPressIn = {() => {
-                fetchReviews(hikeDetails.trail_id);
+                // fetchReviews(hikeDetails.trail_id);
                 setReviewView("rev");
                 // console.log(reviewData);
               }}
@@ -482,18 +583,14 @@ export default function Index() {
               </Text>
             </Pressable>
           </View>
-          <BottomSheetScrollView>
-            <View style = {styles.groupReviewView}>
-                {/* {reviewView ? 
-                hikeData.map( (hike, index) => (reviewPage()) ) : 
-                hikeData.map( (hike, index) => (groupPage()) )} */}
-                {
-                  reviewView === 'desc' ? descriptionPage(hikeDetails) :
-                  reviewView === 'rev' ? reviewPage(hikeDetails) :
-                  reviewView === 'group' ? groupPage(hikeDetails) : null
-                }
-            </View>
-          </BottomSheetScrollView>
+          {/* {reviewView ? 
+          hikeData.map( (hike, index) => (reviewPage()) ) : 
+          hikeData.map( (hike, index) => (groupPage()) )} */}
+          {
+            reviewView === 'desc' ? descriptionPage(hikeDetails) :
+            reviewView === 'rev' ? reviewPage(hikeDetails) :
+            reviewView === 'group' ? groupPage(groupData) : null
+          }
         </SafeAreaView>
         )}
       </BottomSheet>
@@ -695,5 +792,41 @@ const styles = StyleSheet.create({
   },
   reviewText: {
     fontSize: 12,
+  },
+  dateLeftRight: {
+    position: 'relative',
+    // top: 0,
+    // left: 20,
+    // bottom: 550,
+    // right: 300,
+    backgroundColor: 'black',
+    padding: 25,
+    borderRadius: 17,
+    alignContent: "center",
+  },
+  rangeText: {
+    color: "black",
+    fontSize: 20,
+    fontWeight: "ultralight",
+    textAlign: "center",
+  },
+  rangeContainer: {
+    backgroundColor: "white",
+    flex: 1,
+    width: "100%",
+  },
+  rangeTitle: {
+    backgroundColor: "green",
+    flexDirection: "row",
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 20,
+  },
+  groupSelect: {
+    padding: 6,
+    margin: 6,
+    backgroundColor: "lightblue",
+    marginBottom: 15,
   },
 });
