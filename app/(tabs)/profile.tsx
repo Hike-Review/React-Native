@@ -7,6 +7,7 @@ import axios from "axios";
 import { useAuth } from "../components/loginState";
 
 import { SignUpComponent } from "../components/signup";
+import { ProfileViewComponent } from "../components/profileView";
 
 // TODO: Make a global interface file for all interfaces
 // Guest session
@@ -69,7 +70,7 @@ export default function Profile() {
   // Logout function
   const logout = () => {
     loginSuccessful(false);
-    onLogout!();
+    onLogout!(authState!.favoriteHikes!);
   }
 
   // Modal state
@@ -214,24 +215,11 @@ export default function Profile() {
         </View>
       </ImageBackground>
       : 
-      <ImageBackground 
-        style ={styles.container}
-        source = {require('../../assets/images/hikeimage2.avif')}
-        resizeMode = 'cover'
+      <ProfileViewComponent
+        logout={() => {logout()}}
       >
-        <View style={styles.profileContainer}>
-          <Image source={require('../../assets/images/default-profile-pic.jpg')} style={styles.profilePicture} />
-          <Text style={styles.name}>{authState?.username ? authState?.username : null}</Text>
-          <Text style={styles.email}>{authState?.email ? authState?.email : null}</Text>
-          <TouchableOpacity 
-          style={styles.logout}
-          onPress={logout}>
-            <Text style={styles.buttontext}>
-              Log Out
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ImageBackground>
+
+      </ProfileViewComponent>
       }
     </GestureHandlerRootView>
   );

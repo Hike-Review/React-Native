@@ -10,7 +10,7 @@ interface SessionProps {
     authState?: LoginState,
     onRegister?: (username: string, email: string, password: string) => Promise<any>;
     onLogin?: (email: string, password: string) => Promise<any>;
-    onLogout?: () => Promise<any>;
+    onLogout?: (hike_list: Array<string>) => Promise<any>;
 };
 
 // Group State
@@ -42,8 +42,6 @@ export const useAuth = () => {
 
 const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [loginState, setLoginState] = useState<LoginState>({});
-
-    console.log("login state in provider: " + loginState);
 
     const register = async (username: string, email: string, password: string) => {
         try{
@@ -90,10 +88,17 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         }
     }
 
-    const logout = async (email: string, password: string) => {
+    const logout = async (hikes_list: Array<string>) => {
         try{
-            axios.defaults.headers.common['Authorization'] = "";
-            setLoginState({});
+            // Push favorite hikes to DB
+            await axios.post(API_URL + "favorite/hikes", {
+                trail_names: hikes_list
+            }).then(
+                () => {
+                    axios.defaults.headers.common['Authorization'] = "";
+                    setLoginState({});
+                }
+            );
         } catch(e) {
             return { error: true, msg: (e as any).response.data.msg };
         }

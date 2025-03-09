@@ -23,7 +23,7 @@ export default function Index() {
   const { authState } = useAuth();
   
   const loggedIn = () => {
-    return authState?.accessToken
+    return authState?.accessToken != null
   }
 
   // Add modal visibility state
@@ -35,7 +35,6 @@ export default function Index() {
     setReviews(prevReviews => [...prevReviews, newReview]);
     setModalVisible(false);
   };
-
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
@@ -203,11 +202,13 @@ export default function Index() {
     setPathView(hikeData[key].routing_points.map((item)=>({latitude:item[0], longitude:item[1]})));
     setHike(hikeData[key]);
     // Check if hike selected is favorited
-    if(authState!.favoriteHikes!.includes(hikeData[key].trail_name)){
-      setFavoriteIndicator("red");
-    }
-    else{
-      setFavoriteIndicator("white");
+    if(loggedIn()){
+      if(authState && authState!.favoriteHikes!.includes(hikeData[key].trail_name)){
+        setFavoriteIndicator("red");
+      }
+      else{
+        setFavoriteIndicator("white");
+      }
     }
     // Update Sheet Ref
     try{
@@ -222,16 +223,18 @@ export default function Index() {
   const updateUserFavorites = (hike_name: string) => {
     console.log(hike_name);
     try{
-      if(authState!.favoriteHikes!.includes(hike_name)){
-        let idx = authState!.favoriteHikes!.indexOf(hike_name);
-        if (idx > -1) {
-          authState!.favoriteHikes!.splice(idx, 1);
+      if(authState){
+        if(authState?.favoriteHikes?.includes(hike_name)){
+          let idx = authState!.favoriteHikes!.indexOf(hike_name);
+          if (idx > -1) {
+            authState!.favoriteHikes!.splice(idx, 1);
+          }
+          setFavoriteIndicator("white");
         }
-        setFavoriteIndicator("white");
-      }
-      else{
-        authState!.favoriteHikes!.push(hike_name);
-        setFavoriteIndicator("red");
+        else{
+          authState!.favoriteHikes!.push(hike_name);
+          setFavoriteIndicator("red");
+        }
       }
     } catch(error){
       console.error(error);
