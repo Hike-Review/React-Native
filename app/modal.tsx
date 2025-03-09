@@ -3,19 +3,33 @@ import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import axios from 'axios';
+import { Review } from './typesReview';
 
-export interface Review {
-  userName: string;
-  userProfile: string;
-  rating: number;
-  review: string;
-}
+
+
+
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onReviewSubmit: (review: Review) => void;
+  onReviewSubmit: (rating: number, comment: string) => void;
 }
+
+//review view 
+const [reviewData, setReviewData] = useState<Review[]>([]);
+{/*
+//Declared Review Type
+type Review = {
+  "rating": number,
+  "review_date": string,
+  "review_id": number,
+  "review_text": string,
+  "trail_id": number,
+  "username": string,
+};
+*/}
+const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
+
 
 const StarRating: React.FC<{ rating: number; setRating: (rating: number) => void; }> = ({ rating, setRating }) => {
   return (
@@ -29,36 +43,22 @@ const StarRating: React.FC<{ rating: number; setRating: (rating: number) => void
   );
 };
 
-const MyModal: React.FC<ModalProps> = ({ isOpen, onClose, onReviewSubmit }) => {
+const MyModal: React.FC<ModalProps> = ({ isOpen, onClose, onReviewSubmit}) => {
   // Local state for review text and star rating
-  const [review, setReview] = useState<string>('');
-  const [rating, setRating] = useState<number>(0);
-
-  // For this example, we hardcode the current user's name and profile image URL.
-  const userName = "John Doe";
-  const userProfile = "https://example.com/path-to-profile.jpg";
+  const [reviews, setReview] = useState<string>('');
+  const [ratings, setRating] = useState<number>(0);
 
   const handleSubmit = async () => {
-    try {
-      // Post to your backend. Replace with your real API endpoint.
-      const response = await axios.post('https://your-backend.com/api/reviews', { review, rating });
-      
-      if (response.status === 200) {
-        Alert.alert('Success', 'Your review has been submitted!');
-        // Create a review object with user details.
-        const newReview: Review = { userName, userProfile, rating, review };
-        onReviewSubmit(newReview); // Pass review data to the parent.
-        // Clear fields and close modal.
-        setReview('');
-        setRating(0);
-      } else {
-        Alert.alert('Error', 'There was an issue submitting your review.');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'An error occurred while submitting your review.');
+    if (!reviews || ratings === 0) {
+          Alert.alert('Error', 'Please provide a rating and review text.');
+          return;
     }
-  };
+    onReviewSubmit(ratings, reviews); // Pass review data to the parent.
+  // Clear fields and close modal.
+    setReview('');
+    setRating(0);
+
+    };
 
   return (
     <Modal visible={isOpen} transparent animationType="fade">
@@ -66,12 +66,12 @@ const MyModal: React.FC<ModalProps> = ({ isOpen, onClose, onReviewSubmit }) => {
         <View style={styles.overlay}>
           <View style={styles.modal}>
             <Text style={styles.title}>Submit Your Review</Text>
-            <StarRating rating={rating} setRating={setRating} />
+            <StarRating rating={ratings} setRating={setRating} />
             <TextInput
               style={styles.input}
               placeholder="Enter your review or description"
               placeholderTextColor="rgba(172, 172, 172, 0.5)"
-              value={review}
+              value={reviews}
               onChangeText={setReview}
               multiline
             />

@@ -3,16 +3,26 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Keyb
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import axios from 'axios';
 
-/*
-trail_id
-username
-rating
-Review_text
-*/
+//review view 
+const [reviewData, setReviewData] = useState<Review[]>([]);
+
+//Declared Review Type
+type Review = {
+  "rating": number,
+  "review_date": string,
+  "review_id": number,
+  "review_text": string,
+  "trail_id": number,
+  "username": string,
+};
+
+const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
+
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  trailId: number; // Accept trailId
 }
 
 const StarRating: React.FC<{ rating: number; setRating: (rating: number) => void; }> = ({ rating, setRating }) => {
@@ -32,9 +42,19 @@ const MyModal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
   const [rating, setRating] = useState<number>(0);
 
   const handleSubmit = async () => {
+    if (!review || rating === 0) {
+      Alert.alert('Error', 'Please provide a rating and review text.');
+      return;
+    }
+
     try {
       // Replace with your backend API endpoint.
-      const response = await axios.post('https://your-backend.com/api/reviews', { review, rating });
+      const response = await axios.post(API_URL + "reviews",{
+          params:{
+            review: review,
+            rating: rating,
+          }
+        });
       if (response.status === 200) {
         Alert.alert('Success', 'Your review has been submitted!');
         setReview('');
@@ -113,7 +133,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   submitButton: {
-    backgroundColor: 'blue',
+    backgroundColor: 'black',
     padding: 12,
     borderRadius: 5,
     alignItems: 'center',
@@ -130,3 +150,6 @@ const styles = StyleSheet.create({
 });
 
 export default MyModal;
+
+
+
