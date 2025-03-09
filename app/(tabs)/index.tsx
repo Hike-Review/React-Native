@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView} from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal} from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -15,10 +15,19 @@ import MyModal from '../modal';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
 import { format, add, sub } from 'date-fns';
+import reanimatedJS from "react-native-reanimated/lib/typescript/js-reanimated";
+import { registerWebModule } from "expo";
 
 // Add interfacing
 
 export default function Index() {
+
+  // Loading for group page
+  const [loading, setLoading] = useState(false);
+
+  // Acquire initial date range
+  const [start, updateStart] = useState<Date>(new Date());
+  const [end, updateEnd] = useState<Date>(add(start, {days:6}));
 
   // Add modal visibility state
   const [modalVisible, setModalVisible] = useState(false);
@@ -176,6 +185,12 @@ export default function Index() {
     pathViewSelect(false);
     setReviewView("desc");
     useHikeBottom(true);
+
+    // Reset Dates
+    const tempStart = new Date();
+    const tempEnd = add(tempStart, {days:6})
+    updateStart(tempStart);
+    updateEnd(tempEnd);
   };
 
   // Handling marker selection
@@ -204,7 +219,8 @@ export default function Index() {
     catch{
       console.error("Unable to update BottomSheet reference.");
     }
-    fetchGroups(hikeData[key].trail_id);
+
+    fetchGroups(hikeData[key].trail_id, start, end);
   }
 
   // Selecting between Hikes or Groups on the bottom sheet
@@ -237,9 +253,6 @@ export default function Index() {
   // Group View
   const groupBottomSheet = (group: Group) => (
     <View key={Number(group.group_id)} style={styles.contentContainer}>
-      <Text>
-        Kendrick Ng
-      </Text>
       <TouchableOpacity
         style={styles.groupSelect}
         activeOpacity={0.8}
@@ -249,23 +262,40 @@ export default function Index() {
           {group.created_at} {"\n"}
           {group.created_by} {"\n"}
           {group.group_description} {"\n"}
-          {group.group_host} {"\n"}
+          {/* {group.group_host} {"\n"}
           {group.group_id} {"\n"}
           {group.group_name} {"\n"}
           {group.start_time} {"\n"}
           {group.total_users_joined} {"\n"}
           {group.trail_id} {"\n"}
           {group.trail_name} {"\n"}
-          {group.users_joined} {"\n"}
+          {group.users_joined} {"\n"} */}
         </Text>
       </TouchableOpacity>
     </View>
   );
 
+  const loadingModal = () => (
+    <View style={styles.contentContainer}>
+      <Modal
+        transparent = {true}
+        animationType = "fade"
+      >
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loading}> 
+           <Text>
+              Loading ...
+            </Text>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  )
+
   // Call this function to fetch a particular hikes reviews
-  const fetchReviews = async (trail_id: string) => {
+  const fetchReviews = async (id: string) => {
     try {
-      const revDB = await axios.get(API_URL + "reviews", {params: {trail_id: trail_id}});
+      const revDB = await axios.get(API_URL + "reviews", {params: {trail_id: id}});
       // const revDB = await axios.get(API_URL + "reviews?trail_id=" + trail_id);
       setReviewData(revDB.data);
     }
@@ -274,38 +304,60 @@ export default function Index() {
     }    
   };
 
-  // Acquire date 
-  const rawCurrentDate = new Date();
-  // const formattedDate = format(currentDate, 'yyyy-MM-dd hh-mm-ss');
-  const startDate = format(rawCurrentDate, 'yyyy-MM-dd');
-  const addDate = add(startDate, {days:8});
-  const endDate = format(addDate, 'yyyy-MM-dd');
-  // console.log(currentDate);
-  // console.log(futureDate);
+  const incrementDate = (id: string) => {
+    // Enable loading modal
+    setLoading(true);
 
-  const incrementData = (start: Date, end: Date) => {
-    const addStart = add(start, {days:8});
-    const addEnd = add(end, {days:8});
+    // Temp Variables to call, deals with useState() batching
+    const tempStart = add(start, {days:7});
+    const tempEnd = add(end, {days:7});
+
+    // Update start and end parameters
+    updateStart(add(start, {days:7}));
+    updateEnd(add(end, {days:7}));
+
+    // API call
+    fetchGroups(id, tempStart, tempEnd);
+
+    //Wait 1 second before removing loading modal
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000)
   };
 
-  const decrementData = (start: Date, end: Date) => {
-    const subStart = sub(start, {days:8});
-    const subEnd = sub(end, {days:8});
-    // const endDate = format(start, 'yyyy-MM-dd');
+  const decrementDate = (id: string) => {
+    // Enable loading modal
+    setLoading(true);
+
+    // Temp Variables to call, deals with useState() batching
+    const tempStart = sub(start, {days:7});
+    const tempEnd = sub(end, {days:7});
+
+    // Update start and end parameters
+    updateStart(sub(start, {days:7}));
+    updateEnd(sub(end, {days:7}));
+
+    // API call
+    fetchGroups(id, tempStart, tempEnd);
+
+    //Wait 1 second before removing loading modal
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000)
   };
 
   // Call this function to fetch a particular hikes reviews
-  const fetchGroups = async (trail_id: string) => {
+  const fetchGroups = async (id: string, startDate: Date, endDate: Date) => {
     try {
       const groupDB = await axios.get(API_URL + "groups", {
         params: {
-          start_date_range: startDate,
-          // end_date_range: endDate,
-          end_date_range: "2040-03-03",
+          start_date_range: format(startDate, 'yyy-MM-dd hh:mm:ss'),
+          end_date_range: format(endDate, 'yyy-MM-dd hh:mm:ss'),
+          trail_id: id,
         }
       });
       setGroupData(groupDB.data);
-      // console.log(groupDB.data);
+      console.log(format(start, 'yyy-MM-dd hh:mm:ss'), format(end, 'yyy-MM-dd hh:mm:ss'));
     }
     catch (error) {
       console.log(error);
@@ -371,12 +423,12 @@ export default function Index() {
     // </View>
   );
 
-  const groupPage = (groups: Group[]) => (
+  const groupPage = (id: string) => (
     <View style={styles.rangeContainer}>
       <View style={styles.rangeTitle}>
         <TouchableOpacity
             style={styles.dateLeftRight}
-            onPress={resetLocation}
+            onPress={() => decrementDate(id)}
             >
             <Icon
               name="arrow-left"
@@ -390,11 +442,11 @@ export default function Index() {
             />
           </TouchableOpacity>
           <Text style={styles.rangeText}>
-            Kendrick Ng
+            {format(start, 'LLL. do')} - {format(end, 'LLL. do')}
           </Text>
           <TouchableOpacity
             style={styles.dateLeftRight}
-            onPress={resetLocation}
+            onPress={() => incrementDate(id)}
             >
             <Icon
               name="arrow-right"
@@ -408,11 +460,9 @@ export default function Index() {
             />
           </TouchableOpacity>
       </View>
-      <ScrollView>
+      <ScrollView style={styles.groupBottom}>
         
-        {/* .map function goes here*/}
-        {/* hikeData.map( (hike, index) => (hikeBottomSheet(hike, index)) ) :  */}
-        {groupData.map((group) => (groupBottomSheet(group)) )}
+        { loading ? loadingModal() : groupData.map((group) => (groupBottomSheet(group)) )}
         
       </ScrollView>
     {/* show if available groups are present for this hike */}
@@ -589,7 +639,7 @@ export default function Index() {
           {
             reviewView === 'desc' ? descriptionPage(hikeDetails) :
             reviewView === 'rev' ? reviewPage(hikeDetails) :
-            reviewView === 'group' ? groupPage(groupData) : null
+            reviewView === 'group' ? groupPage(hikeDetails.trail_id) : null
           }
         </SafeAreaView>
         )}
@@ -709,9 +759,9 @@ const styles = StyleSheet.create({
   //   justifyContent: 'center',
   //   alignItems: 'center',
   // },
-  groupBox: {
+  groupBottom: {
     flex: 1,
-    backgroundColor: "green",
+    backgroundColor: "black",
   },
   groupReviewView: {
     flex: 1,
@@ -805,7 +855,7 @@ const styles = StyleSheet.create({
     alignContent: "center",
   },
   rangeText: {
-    color: "black",
+    color: "white",
     fontSize: 20,
     fontWeight: "ultralight",
     textAlign: "center",
@@ -816,7 +866,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   rangeTitle: {
-    backgroundColor: "green",
+    backgroundColor: "black",
     flexDirection: "row",
     height: 50,
     alignItems: "center",
@@ -828,5 +878,25 @@ const styles = StyleSheet.create({
     margin: 6,
     backgroundColor: "lightblue",
     marginBottom: 15,
+    borderRadius: 25,
+    width: "80%",
+    height: "80%",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+  },
+  loading: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 20,
+    width: '60%',
+    height: '8%', 
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
