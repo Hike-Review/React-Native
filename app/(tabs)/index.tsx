@@ -30,10 +30,10 @@ export default function Index() {
   const [reviews, setReviews] = useState<Review[]>([]);
 
   // Callback passed to the modal after a successful review submission.
-  const handleReviewSubmit = (newReview: Review) => {
+  /*const handleReviewSubmit = (newReview: Review) => {
     setReviews(prevReviews => [...prevReviews, newReview]);
     setModalVisible(false);
-  };
+  };*/
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
@@ -54,9 +54,6 @@ export default function Index() {
   const [hikeData, setHikeData] = useState<Hike[]>([]);
   const [groupData, setGroupData] = useState<Group[]>([]);
   const [reviewData, setReviewData] = useState<Review[]>([]);
-
-  // Add modal visibility state
-  const [modalVisible, setModalVisible] = useState(false);
 
   //Declared Hike Type
   type Hike = {
@@ -90,7 +87,7 @@ export default function Index() {
     "users_joined": Array<string>,   // list of usernames, change to list of user_id's if needed
   };
 
-/*
+
 //Declared Review Type
   type Review = {
     "rating": number,
@@ -100,7 +97,7 @@ export default function Index() {
     "trail_id": number,
     "username": string,
   };
-*/
+
 
   // Call this function to fetch a particular hikes reviews
   const fetchReviews = async (id: number) => {
@@ -144,41 +141,28 @@ export default function Index() {
 
   // Callback passed to the modal after a successful review submission.
   const handleReviewSubmit = async (ratings: number, reviews: string) => {
-    
+    if (authState == null){
+      Alert.alert('Error', 'Please Sign in or Sign Up');
+    }
 
     if (!reviews || ratings === 0) {
       Alert.alert('Error', 'Please provide a rating and review text.');
-              return;
     }
 
     try {
       // Post to your backend. Replace with your real API endpoint.
-      const response = await axios.post(API_URL + "reviews", { 
-        params:{//how do you extract from review do you 
+      const response = await axios.post(API_URL + "reviews", {//how do you extract from review do you 
           trail_id: hikeDetails.trail_id, // how do i get the this
-          username:  //how do ik what user it is 
+          username: authState?.username, //how do ik what user it is 
           rating: ratings,//ratings,
           review_text: reviews,//reviews,
         }
-        /*{
-          headers: { Authorization: `Bearer ${token}` },
-        }*/
-      });
-      const rev = fetchReviews(hikeDetails.trail_id);
+      );
 
       if (response.status === 201) {
+        console.log("hello")
         Alert.alert('Success', 'Your review has been submitted!');
-        // Create a review object with user details.
-        /*const newReview: Review = {
-          review_id: number;
-          trail_id: number;
-          username: string;
-          rating: number;
-          review_date: string;
-          review_text: string;
-          userProfile?: string;
-          //userProfile: string,
-        };*/
+        fetchReviews(hikeDetails.trail_id);
       } else {
         Alert.alert('Error', 'There was an issue submitting your review.');
       }
@@ -809,12 +793,18 @@ const styles = StyleSheet.create({
   },
   //comments posted
   reviewItem: {
-    flex: 500,
-    flexDirection: 'row',
+    flexDirection: 'row', // Ensures layout is horizontal
+    alignItems: 'center', // Align items properly
+    width: '100%', // Expands width close to full screen
     marginVertical: 10,
     backgroundColor: '#f7f7f7',
-    padding: 10,
-    borderRadius: 5,
+    padding: 15, // More spacing inside
+    borderRadius: 10, // Rounder edges for better look
+    shadowColor: '#000', // Optional: Adds a subtle shadow
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5, // Android shadow support
   },
   profileImage: {
     width: 50,
