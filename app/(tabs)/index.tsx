@@ -1,12 +1,13 @@
-import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal} from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal, Touchable, Button} from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
 import Svg, {Path, Circle, Ellipse} from 'react-native-svg'
 import axios from 'axios';
+import { useForm, Controller } from 'react-hook-form';
 
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-native-gesture-handler';
+import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 
@@ -17,6 +18,7 @@ import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescri
 import { format, add, sub, endOfDay, parse } from 'date-fns';
 import reanimatedJS from "react-native-reanimated/lib/typescript/js-reanimated";
 import { registerWebModule } from "expo";
+import RNDateTimePicker from '@react-native-community/datetimepicker';
 
 // Add interfacing
 
@@ -319,7 +321,7 @@ export default function Index() {
     // API call
     fetchGroups(id, tempStart, tempEnd);
 
-    //Wait 1 second before removing loading modal
+    //Wait 1 second (1000 ms) before removing loading modal
     setTimeout(() => {
       setLoading(false);
     }, 1000)
@@ -340,7 +342,7 @@ export default function Index() {
     // API call
     fetchGroups(id, tempStart, tempEnd);
 
-    //Wait 1 second before removing loading modal
+    //Wait 1 second (1000 ms) before removing loading modal
     setTimeout(() => {
       setLoading(false);
     }, 1000)
@@ -361,29 +363,105 @@ export default function Index() {
     // API call
     fetchGroups(id, tempStart, tempEnd);
 
-    //Wait 1 second before removing loading modal
+    //Wait 1 second (1000 ms) before removing loading modal
     setTimeout(() => {
       setLoading(false);
     }, 1000)
   };
+  
+  const { control, handleSubmit, setError, clearErrors, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      email: "",
+      password: ""
+    }
+  });
 
-  const createGroup = () => {
+  const [date, setDate] = useState(new Date())
+  const [open, setOpen] = useState(false)
+
+  const createGroup = () => (
     <View style={styles.contentContainer}>
       <Modal
         transparent = {true}
         animationType = "fade"
       >
         <View style={styles.loadingOverlay}>
-          <View style={styles.loading}> 
-           <Text>
-              Loading ...
+          <View style={styles.createGroupModal}> 
+           <Text style={styles.createGroupHeader}>
+              New Group
             </Text>
+            <View style={styles.form}>
+              <Controller
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={styles.input} 
+                  placeholder="Group Name" 
+                  placeholderTextColor={'gray'}
+                  onChangeText = {onChange}
+                  value={value}
+                  onBlur={() => {}}
+                />
+              )}
+              name="email"
+              rules = {
+                {
+                  required: true
+                }
+              }
+              />
+              <Controller
+                control={control}
+                render={({field: {onChange, value}}) => (
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Group Description" 
+                    placeholderTextColor={'gray'}
+                    onChangeText = {onChange}
+                    value={value}
+                    onBlur={() => {}}
+                  />
+                )}
+                name="password"
+                rules = {
+                  {
+                    required: true
+                  }
+                }
+              /> 
+                {(errors.email) && <Text> {"Please enter your email and password"} </Text>}
+                {(errors.password) && <Text> {"Invalid Credentials"} </Text>}
+            </View>
+            <TouchableOpacity
+              style={styles.closeGroupModal}
+              onPress={() => setReviewView("group")}
+            >
+            <Icon
+              name="close"
+              color={"red"}
+              size = {35}
+              style={{
+                position: "absolute",
+                top: 6,
+                left: 12,
+              }}
+            />
+          </TouchableOpacity>
+          <RNDateTimePicker
+            style = {styles.datePicker}
+            testID="dateTimePicker"
+            value={date}
+            minimumDate={new Date()}
+            mode="datetime"
+            display="default"
+            textColor= "black"
+            // onChange={onChange}
+          />
           </View>
         </View>
       </Modal>
     </View>
-  };
-
+  );
 
   // Call this function to fetch a particular hikes reviews
   const fetchGroups = async (id: string, startDate: Date, endDate: Date) => {
@@ -409,9 +487,13 @@ export default function Index() {
   const descriptionPage = (hikeDetails: Hike) => (
     <ScrollView>
       <Text style={styles.bottomButtonText}>
-        Description Kendrick Ng: {hikeDetails.description}
+        Description: {hikeDetails.description} {"\n"}
       </Text>
       {/* display image from hike object */}
+      <Image 
+          source = {{uri: hikeDetails.trail_image}}
+          style={styles.hikeBottomImage}
+        />
       {/* add any other useful description */}
     </ScrollView>
   );
@@ -504,39 +586,36 @@ export default function Index() {
         { loading ? loadingModal() : groupData.map((group) => (groupBottomSheet(group)) )}
         
       </ScrollView>
-      {/* <View style={styles.bottomRangeTitle}> */}
-        <TouchableOpacity
-          style={styles.resetDate}
-          onPress={() => resetDate(id)}
-          >
-          <Icon
-              name="refresh"
-              color={"white"}
-              size = {30}
-              style={{
-                position: "absolute",
-                top: 13,
-                left: 22,
-              }}
-            />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.createGroup}
-          onPress={() => createGroup()}
-          >
-          <Icon
-              name="plus"
-              color={"white"}
-              size = {30}
-              style={{
-                position: "absolute",
-                top: 13,
-                left: 23,
-              }}
-            />
-        </TouchableOpacity>   
-      {/* </View> */}
-    {/* show if available groups are present for this hike */}
+      <TouchableOpacity
+        style={styles.resetDate}
+        onPress={() => resetDate(id)}
+        >
+        <Icon
+            name="refresh"
+            color={"white"}
+            size = {30}
+            style={{
+              position: "absolute",
+              top: 13,
+              left: 22,
+            }}
+          />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.createGroup}
+        onPress={() => setReviewView("create")}
+        >
+        <Icon
+            name="plus"
+            color={"white"}
+            size = {30}
+            style={{
+              position: "absolute",
+              top: 13,
+              left: 23,
+            }}
+          />
+      </TouchableOpacity>
     </View>
   );
 
@@ -683,9 +762,7 @@ export default function Index() {
                 (reviewView === 'rev') && styles.bottomButtonPressed
               ]}
               onPressIn = {() => {
-                // fetchReviews(hikeDetails.trail_id);
                 setReviewView("rev");
-                // console.log(reviewData);
               }}
             >
               <Text style={styles.bottomHikeButtonText}>
@@ -707,7 +784,9 @@ export default function Index() {
           {
             reviewView === 'desc' ? descriptionPage(hikeDetails) :
             reviewView === 'rev' ? reviewPage(hikeDetails) :
-            reviewView === 'group' ? groupPage(hikeDetails.trail_id) : null
+            reviewView === 'group' ? groupPage(hikeDetails.trail_id) : 
+            reviewView === 'create' ? createGroup() : 
+            null
           }
         </SafeAreaView>
         )}
@@ -1011,5 +1090,46 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignContent: "center",
     justifyContent: "center",
+  },
+  createGroupModal: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 20,
+    width: '80%',
+    height: '40%', 
+    // justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeGroupModal: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: 'white',
+    padding: 25,
+    borderRadius: 17,
+    alignContent: "center",
+  },
+  createGroupHeader: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "black",
+    marginBottom: 20,
+  },
+  input: {
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    backgroundColor: 'white'
+  },
+  form: {
+    gap: 10,
+    width: '65%',
+    height: "15%",
+  },
+  datePicker: {
+    right: 5,
+    top: 100,
+    borderRadius: 17,
   },
 });
