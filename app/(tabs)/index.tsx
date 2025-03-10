@@ -518,7 +518,6 @@ export default function Index() {
         }
       });
       setGroupData(groupDB.data);
-      console.log(format(start, 'yyyy-MM-dd HH:mm:ss'), format(end, 'yyyy-MM-dd HH:mm:ss'));
     }
     catch (error) {
       console.log(error);
@@ -938,7 +937,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   hikeBottomImage: {
-    height: 160,
+    height: 170,
     width: 350,
     borderRadius: 15,
     marginBottom: 5,
