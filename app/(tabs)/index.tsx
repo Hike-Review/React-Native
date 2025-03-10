@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   hikeBottomImage: {
-    height: 160,
+    height: 170,
     width: 350,
     borderRadius: 15,
     marginBottom: 5,
