@@ -21,6 +21,7 @@ import { registerWebModule } from "expo";
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 
 import { useAuth } from "../components/loginState";
+import { GroupCreation } from "../components/groupCreation";
 
 
 // Add interfacing
@@ -352,7 +353,7 @@ export default function Index() {
 
   const incrementDate = (id: string) => {
     // Enable loading modal
-    setLoading(true);
+    // setLoading(true);
 
     // Temp Variables to call, deals with useState() batching
     const tempStart = add(start, {days:7});
@@ -366,14 +367,14 @@ export default function Index() {
     fetchGroups(id, tempStart, tempEnd);
 
     //Wait 1 second (1000 ms) before removing loading modal
-    setTimeout(() => {
+    /*setTimeout(() => {
       setLoading(false);
-    }, 1000)
+    }, 1000)*/
   };
 
   const decrementDate = (id: string) => {
     // Enable loading modal
-    setLoading(true);
+    // setLoading(true);
 
     // Temp Variables to call, deals with useState() batching
     const tempStart = sub(start, {days:7});
@@ -387,14 +388,14 @@ export default function Index() {
     fetchGroups(id, tempStart, tempEnd);
 
     //Wait 1 second (1000 ms) before removing loading modal
-    setTimeout(() => {
+    /*setTimeout(() => {
       setLoading(false);
-    }, 1000)
+    }, 1000)*/
   };
 
   const resetDate = (id: string) => {
     // Enable loading modal
-    setLoading(true);
+    // setLoading(true);
 
     // Temp Variables to call, deals with useState() batching
     const tempStart = new Date();
@@ -408,9 +409,9 @@ export default function Index() {
     fetchGroups(id, tempStart, tempEnd);
 
     //Wait 1 second (1000 ms) before removing loading modal
-    setTimeout(() => {
+    /*setTimeout(() => {
       setLoading(false);
-    }, 1000)
+    }, 1000)*/
   };
   
   const { control, handleSubmit, setError, clearErrors, reset, formState: { errors } } = useForm({
@@ -423,7 +424,7 @@ export default function Index() {
   const [date, setDate] = useState(new Date())
   const [open, setOpen] = useState(false)
 
-  const createGroup = () => (
+  /*const createGroup = () => (
     <View style={styles.contentContainer}>
       <Modal
         transparent = {true}
@@ -505,10 +506,12 @@ export default function Index() {
         </View>
       </Modal>
     </View>
-  );
+  );*/
 
   // Call this function to fetch a particular hikes reviews
   const fetchGroups = async (id: string, startDate: Date, endDate: Date) => {
+    // Enable loading modal
+    setLoading(true);
     try {
       const groupDB = await axios.get(API_URL + "groups", {
         params: {
@@ -516,11 +519,20 @@ export default function Index() {
           end_date_range: format(endDate, 'yyyy-MM-dd HH:mm:ss'),
           trail_id: id,
         }
-      });
-      setGroupData(groupDB.data);
+      }).then(
+        (response) => {
+          setGroupData(response.data);
+          // console.log(format(start, 'yyyy-MM-dd HH:mm:ss'), format(end, 'yyyy-MM-dd HH:mm:ss'));
+          // Delay for processing
+          setTimeout(() => {
+            setLoading(false);
+          }, 1000);
+        }
+      );
     }
     catch (error) {
-      console.log(error);
+      console.error(error);
+      setLoading(false);
     }    
   };
 
@@ -848,7 +860,13 @@ export default function Index() {
             reviewView === 'desc' ? descriptionPage(hikeDetails) :
             reviewView === 'rev' ? reviewPage(hikeDetails) :
             reviewView === 'group' ? groupPage(hikeDetails.trail_id) : 
-            reviewView === 'create' ? createGroup() : 
+            reviewView === 'create' ? 
+              <GroupCreation
+                trail={hikeDetails.trail_id}
+                viewReset={(view:string) => setReviewView(view)}
+                dateReset={(id: string) => resetDate(id)}
+                dateConverter={convertToDate}
+              /> : 
             null
           }
         </SafeAreaView>
