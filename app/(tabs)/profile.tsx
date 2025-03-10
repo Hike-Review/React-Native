@@ -99,15 +99,15 @@ export default function Profile() {
       response => {
         // Login Successful
         if(response.status == 200){
+          setLoadingState(false);
           loginSuccessful(true);
         }
         else{
-          console.log("login failed");
+          console.error("login failed");
           setError("password", {type: 'manual'});
         }
-        setLoadingState(false);
       }
-    )
+    );
     // Reset login form
     reset();
   };
@@ -217,9 +217,7 @@ export default function Profile() {
       : 
       <ProfileViewComponent
         logout={() => {logout()}}
-      >
-
-      </ProfileViewComponent>
+      />
       }
     </GestureHandlerRootView>
   );

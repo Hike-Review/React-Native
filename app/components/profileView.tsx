@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Text, TextInput, View, StyleSheet, TouchableOpacity, ImageBackground, Image } from 'react-native';
 import { useAuth } from './loginState';
+import { useFocusEffect } from 'expo-router';
 
 export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
     // Get authentication state
@@ -18,7 +19,16 @@ export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
           <Text style={styles.name}>{authState?.username ? authState?.username : null}</Text>
           <Text style={styles.email}>{authState?.email ? authState?.email : null}</Text>
           <View style={styles.favoriteHikesContainer}>
-            <Text> Test </Text>
+            <Text style={styles.favoriteHikeTitle}> Favorites </Text>
+            {authState?.favoriteHikes && authState?.favoriteHikes.length > 0 ? authState.favoriteHikes!.map((hike_name: string, key: number) => (
+                <Text key={key}>
+                    {hike_name}
+                </Text>
+            )) : 
+            <Text>
+                "No favorite hikes"
+            </Text>
+            }
           </View>
           <TouchableOpacity 
           style={styles.logout}
@@ -67,7 +77,7 @@ const styles = StyleSheet.create({
     profileContainer: {
         flex: 1,
         alignItems: 'center',
-        padding: 50,
+        padding: 75,
         marginTop: 75,
         marginBottom: 20,
         backgroundColor: 'white'
@@ -80,7 +90,10 @@ const styles = StyleSheet.create({
     },
     favoriteHikesContainer: {
         backgroundColor: "grey",
-        marginTop: 10,
-        width: 150
+        marginTop: 30,
+        width: 150,
+    },
+    favoriteHikeTitle: {
+        fontSize: 20
     }
 });

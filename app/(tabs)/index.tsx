@@ -20,7 +20,7 @@ import { useAuth } from "../components/loginState";
 
 export default function Index() {
   // Use context for login
-  const { authState } = useAuth();
+  const { authState, updateFavorites } = useAuth();
   
   const loggedIn = () => {
     return authState?.accessToken != null
@@ -66,7 +66,7 @@ export default function Index() {
         setHikeData(hikeDB.data);
       }
       catch (error) {
-        console.log(error);
+        console.error(error);
       }    
     }
     fetchHikeData();
@@ -221,25 +221,27 @@ export default function Index() {
 
   // Add/Remove favorites
   const updateUserFavorites = (hike_name: string) => {
-    console.log(hike_name);
     try{
       if(authState){
         if(authState?.favoriteHikes?.includes(hike_name)){
-          let idx = authState!.favoriteHikes!.indexOf(hike_name);
+          let oldList = authState.favoriteHikes.slice();
+          let idx = oldList.indexOf(hike_name);
           if (idx > -1) {
-            authState!.favoriteHikes!.splice(idx, 1);
+            oldList.splice(idx, 1);
+            updateFavorites!(oldList);
           }
           setFavoriteIndicator("white");
         }
         else{
-          authState!.favoriteHikes!.push(hike_name);
+          let oldList = authState!.favoriteHikes!.slice();
+          oldList.push(hike_name);
+          updateFavorites!(oldList);
           setFavoriteIndicator("red");
         }
       }
     } catch(error){
       console.error(error);
     }
-    console.log(authState?.favoriteHikes);
   }
 
   // Selecting between Hikes or Groups on the bottom sheet
@@ -285,7 +287,7 @@ export default function Index() {
       setReviewData(revDB.data);
     }
     catch (error) {
-      console.log(error);
+      console.error(error);
     }    
   }
 
