@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Text, TextInput, View, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export const SignUpComponent: React.FC<any> = ({ signUp, close }) => {
     // Login form
@@ -20,6 +21,9 @@ export const SignUpComponent: React.FC<any> = ({ signUp, close }) => {
 
     return (
         <View style={styles.container}>
+            <Text style={styles.header}>
+                Create Account 
+            </Text>
             <View style={styles.form}>
                 <Controller
                     control={control}
@@ -83,16 +87,16 @@ export const SignUpComponent: React.FC<any> = ({ signUp, close }) => {
             <View style={styles.buttonlayout}>
                 <TouchableOpacity 
                 style={styles.button}
-                onPress={handleSubmit(onSubmit)}>
+                onPress={() => close()}>
                     <Text style={styles.buttontext}>
-                        Create
+                    Cancel
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={styles.button}
-                  onPress={() => close()}>
+                style={styles.button}
+                onPress={handleSubmit(onSubmit)}>
                     <Text style={styles.buttontext}>
-                      Cancel
+                        Create
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -103,10 +107,11 @@ export const SignUpComponent: React.FC<any> = ({ signUp, close }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: "white",
         justifyContent: 'center',
         alignItems: 'center',
-        width: '80%',
-        height: '50%',
+        width: '100%',
+        height: '100%',
     },
     title: {
         color: "white",
@@ -115,6 +120,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     form: {
+        bottom: 63,
         gap: 10,
         width: '65%',
         height: "15%",
@@ -129,8 +135,9 @@ const styles = StyleSheet.create({
     button: {
         backgroundColor: "#023020",
         borderRadius: 20,
-        width: "120%",
-        height: "25%",
+        top: 80,
+        width: "130%",
+        height: "145%",
         justifyContent: 'center',
     },
     buttontext: {
@@ -141,10 +148,16 @@ const styles = StyleSheet.create({
     },
     buttonlayout: {
         flexDirection: "row",
-        gap: 10,
+        gap: 40,
         height: "10%",
         justifyContent: 'center',
         alignItems: 'center',
         width: '30%',
-      },
+    },
+    header: {
+        bottom: 87,
+        fontSize: 30,
+        fontWeight: "bold",
+        color: "black",
+    },
 })
