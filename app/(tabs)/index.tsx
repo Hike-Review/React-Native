@@ -10,8 +10,7 @@ import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-nativ
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 
-import { Review } from '../typesReview';
-import MyModal from '../modal';
+import MyModal from '../components/modal';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
 import { useAuth } from "../components/loginState";
@@ -27,13 +26,6 @@ export default function Index() {
 
   // Add modal visibility state
   const [modalVisible, setModalVisible] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
-
-  // Callback passed to the modal after a successful review submission.
-  /*const handleReviewSubmit = (newReview: Review) => {
-    setReviews(prevReviews => [...prevReviews, newReview]);
-    setModalVisible(false);
-  };*/
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
@@ -101,21 +93,13 @@ export default function Index() {
 
   // Call this function to fetch a particular hikes reviews
   const fetchReviews = async (id: number) => {
-
     try {
       const revDB = await axios.get(API_URL + "reviews", {
         params:{
           trail_id: id,
         }
       });
-      //setReviewData(revDB.data);
-      setReviewData(revDB.data);  /*prevReviews => {
-        // Remove old reviews for this hike and replace with updated ones
-        const filteredReviews = prevReviews.filter(r => r.trail_id !== id);
-        return [...filteredReviews, ...revDB.data];
-      });*/
-      //console.log("setReviewData: ", revDB.data);
-      //console.log("reviewData (setReviewData): ", reviewData);
+      setReviewData(revDB.data);   
     }
     catch (error) {
       console.log(error);
@@ -127,10 +111,7 @@ export default function Index() {
     const fetchHikeData = async () => {
       try {
         const hikeDB = await axios.get(API_URL + "hikes");
-        // const groupDB = await axios.get(API_URL + "groups");
-        // setGroupData(groupDB.data);
         setHikeData(hikeDB.data);
-        //console.log(hikeDB.data)
       }
       catch (error) {
         console.log(error);
@@ -141,26 +122,21 @@ export default function Index() {
 
   // Callback passed to the modal after a successful review submission.
   const handleReviewSubmit = async (ratings: number, reviews: string) => {
-    if (authState == null){
-      Alert.alert('Error', 'Please Sign in or Sign Up');
-    }
-
     if (!reviews || ratings === 0) {
       Alert.alert('Error', 'Please provide a rating and review text.');
     }
 
     try {
       // Post to your backend. Replace with your real API endpoint.
-      const response = await axios.post(API_URL + "reviews", {//how do you extract from review do you 
-          trail_id: hikeDetails.trail_id, // how do i get the this
-          username: authState?.username, //how do ik what user it is 
-          rating: ratings,//ratings,
-          review_text: reviews,//reviews,
+      const response = await axios.post(API_URL + "reviews", {
+          trail_id: hikeDetails.trail_id, 
+          username: authState?.username,  
+          rating: ratings,
+          review_text: reviews,
         }
       );
 
       if (response.status === 201) {
-        console.log("hello")
         Alert.alert('Success', 'Your review has been submitted!');
         fetchReviews(hikeDetails.trail_id);
       } else {
@@ -170,17 +146,20 @@ export default function Index() {
       console.error(error);
       Alert.alert('Error', 'An error occurred while submitting your review.');
     }
-
-    // setReviewData(prevReviews => [...prevReviews, newReview]);
     setModalVisible(false);
-    //console.log(newReview)  what is in newReview
   };
 
   const reviewPage = (hikeDetails: Hike) => (
     <View style={styles.container}>
          
          {/* Review Button */}
-         <TouchableOpacity style={styles.reviewButton} onPress={() => setModalVisible(true)}>
+          <TouchableOpacity style={styles.reviewButton} onPress={() => {
+            if (loggedIn() == false){
+              Alert.alert('Error', 'Please Sign in or Sign Up');
+            }else{
+              setModalVisible(true);
+            }
+          }}>
            <Text style={styles.reviewButtonText}>Leave a Review</Text>
          </TouchableOpacity>
 
@@ -188,18 +167,13 @@ export default function Index() {
          <MyModal
            isOpen={modalVisible}
            onClose={() => setModalVisible(false)}
-           //trailId={hikeDetails.trail_id} // Pass trail_id
-           //userName={hikeDetails.username}
-           //rate={hikeDetails.rating}
-           //reviewText={hikeDetails.review_text}
-           onReviewSubmit={handleReviewSubmit}//this is a new input from modal into handleReviewSubmit
+           onReviewSubmit={handleReviewSubmit}
          />
 
          {/* Render submitted reviews */}
          <ScrollView style={styles.reviewList}>
            {reviewData.map((rev, index) => (
              <View key={index} style={styles.reviewItem}>
-               <Image source={{ uri: rev.userProfile }} style={styles.profileImage} />
                <View style={styles.reviewContent}>
                  <Text style={styles.userCame}>{rev.username}</Text>
                  <View style={styles.starDisplay}>
@@ -218,12 +192,6 @@ export default function Index() {
            ))}
          </ScrollView>
        </View>
-   // <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
-   //   <Text style={styles.bottomButtonText}>
-   //     Review Kendrick Ng
-   //   </Text>
-   // {/* show each review similar to hikeBottomSheet function */}
-   // </View>
  );
 
 
@@ -790,6 +758,7 @@ const styles = StyleSheet.create({
   },
   reviewList: {
     marginTop: 20,
+    width: '200%',
   },
   //comments posted
   reviewItem: {

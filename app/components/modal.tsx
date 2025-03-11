@@ -1,28 +1,13 @@
+// modal.tsx
 import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import axios from 'axios';
 
-//review view 
-const [reviewData, setReviewData] = useState<Review[]>([]);
-
-//Declared Review Type
-type Review = {
-  "rating": number,
-  "review_date": string,
-  "review_id": number,
-  "review_text": string,
-  "trail_id": number,
-  "username": string,
-};
-
-const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
-
-
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  trailId: number; // Accept trailId
+  onReviewSubmit: (rating: number, comment: string) => void;
 }
 
 const StarRating: React.FC<{ rating: number; setRating: (rating: number) => void; }> = ({ rating, setRating }) => {
@@ -37,52 +22,37 @@ const StarRating: React.FC<{ rating: number; setRating: (rating: number) => void
   );
 };
 
-const MyModal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
-  const [review, setReview] = useState<string>('');
-  const [rating, setRating] = useState<number>(0);
+const MyModal: React.FC<ModalProps> = ({ isOpen, onClose, onReviewSubmit}) => {
+  // Local state for review text and star rating
+  const [reviews, setReview] = useState<string>('');
+  const [ratings, setRating] = useState<number>(0);
 
   const handleSubmit = async () => {
-    if (!review || rating === 0) {
-      Alert.alert('Error', 'Please provide a rating and review text.');
-      return;
+    if (!reviews || ratings === 0) {
+          Alert.alert('Error', 'Please provide a rating and review text.');
+          return;
     }
+    // Pass review data to the parent.
+    onReviewSubmit(ratings, reviews); 
 
-    try {
-      // Replace with your backend API endpoint.
-      const response = await axios.post(API_URL + "reviews",{
-          params:{
-            review: review,
-            rating: rating,
-          }
-        });
-      if (response.status === 200) {
-        Alert.alert('Success', 'Your review has been submitted!');
-        setReview('');
-        setRating(0);
-        onClose();
-      } else {
-        Alert.alert('Error', 'There was an issue submitting your review.');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'An error occurred while submitting your review.');
-    }
-  };
+    // Clear fields and close modal.
+    setReview('');
+    setRating(0);
+
+    };
 
   return (
     <Modal visible={isOpen} transparent animationType="fade">
-      {/* Wrapping the content in TouchableWithoutFeedback dismisses the keyboard when tapping outside */}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.overlay}>
           <View style={styles.modal}>
             <Text style={styles.title}>Submit Your Review</Text>
-            {/* Star rating section */}
-            <StarRating rating={rating} setRating={setRating} />
-            {/* Text input for review */}
+            <StarRating rating={ratings} setRating={setRating} />
             <TextInput
               style={styles.input}
               placeholder="Enter your review or description"
-              value={review}
+              placeholderTextColor="rgba(172, 172, 172, 0.5)"
+              value={reviews}
               onChangeText={setReview}
               multiline
             />
@@ -116,7 +86,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   starContainer: {
     flexDirection: 'row',
@@ -132,8 +102,11 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     marginBottom: 15,
   },
+  placeholder:{
+    color:'rgba(246, 241, 241, 0.5)',
+  },
   submitButton: {
-    backgroundColor: 'black',
+    backgroundColor: 'blue',
     padding: 12,
     borderRadius: 5,
     alignItems: 'center',
@@ -150,6 +123,3 @@ const styles = StyleSheet.create({
 });
 
 export default MyModal;
-
-
-
