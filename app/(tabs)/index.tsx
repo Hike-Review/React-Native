@@ -110,7 +110,7 @@ export default function Index() {
 
 
   // Call this function to fetch a particular hikes reviews
-  const fetchReviews = async (id: number) => {
+  /*const fetchReviews = async (id: number) => {
     try {
       const revDB = await axios.get(API_URL + "reviews", {
         params:{
@@ -122,7 +122,7 @@ export default function Index() {
     catch (error) {
       console.log(error);
     }    
-  }
+  }*/
 
   // Fetch Hikes from Database
   useEffect(() => {
@@ -420,15 +420,20 @@ export default function Index() {
   )
 
   // Call this function to fetch a particular hikes reviews
-  const fetchReviews = async (id: string) => {
+  const fetchReviews = async (id: number) => {
     try {
-      const revDB = await axios.get(API_URL + "reviews", {params: {trail_id: id}});
+      const revDB = await axios.get(API_URL + "reviews", {params: {trail_id: id}}).then(
+        (response) => {
+          setReviewData(response.data);
+        }
+      );
       // const revDB = await axios.get(API_URL + "reviews?trail_id=" + trail_id);
-      setReviewData(revDB.data);
+      console.log(id);
+      console.log(reviewData);
     }
     catch (error) {
       console.error(error);
-    }    
+    }
   };
 
   const incrementDate = (id: string) => {
@@ -872,6 +877,7 @@ export default function Index() {
                 (reviewView === 'rev') && styles.bottomButtonPressed
               ]}
               onPressIn = {() => {
+                fetchReviews(hikeDetails.trail_id);
                 setReviewView("rev");
               }}
             >
@@ -1072,7 +1078,7 @@ const styles = StyleSheet.create({
   },
   reviewList: {
     marginTop: 20,
-    width: '200%',
+    width: 200,
   },
   reviewItem: {
     flexDirection: 'row', // Ensures layout is horizontal
