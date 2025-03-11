@@ -26,6 +26,7 @@ interface LoginState {
     accessToken?: any,
     refreshToken?: any,
     username?: string,
+    userId?: number,
     email?: string,
     password?: string,
     favoriteHikes?: Array<string>,
@@ -75,6 +76,7 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                                 "accessToken": loginResponse.data.tokens.access,
                                 "refreshToken": loginResponse.data.tokens.refresh,
                                 "username": response.data.user_details.username,
+                                "userId": response.data.user_details.user_id,
                                 "email": email,
                                 "favoriteHikes": response.data.user_details.favorite_hikes
                             });
@@ -110,6 +112,7 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             "refreshToken": contextValue.authState.refreshToken,
             "username": contextValue.authState.username,
             "email": contextValue.authState.email,
+            "userId": contextValue.authState.userId,
             "favoriteHikes": hikes_list
         });
     }

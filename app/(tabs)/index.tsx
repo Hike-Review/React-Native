@@ -337,9 +337,11 @@ export default function Index() {
         <View style={styles.loadingOverlay}>
           <View style={styles.createGroupModal}> 
            <Text style={styles.createGroupHeader}>
-              Join Group {"\n"}
+              Join Group {"\n"}  
+            </Text>
+            <Text style={styles.joinSubText}>
               {groupDetails.group_name} {"\n"}
-              {format(convertToDate(groupDetails.start_time), "LLLL d, h a")}   
+              {format(convertToDate(groupDetails.start_time), "LLLL d, h a")} 
             </Text>
             <TouchableOpacity
               style={styles.closeGroupModal}
@@ -358,7 +360,14 @@ export default function Index() {
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.join}
-            // onPress={}
+            onPress={() => {
+              if(loggedIn()){
+                groupJoin();
+              }
+              else{
+                Alert.alert("Cannot Join Group", "Please log in first");
+              }
+            }}
             >
             <Text style={styles.joinText}>
               Join
@@ -369,6 +378,21 @@ export default function Index() {
       </Modal>
     </View>
   );
+
+  const groupJoin = async () => {
+    try {
+      const join = await axios.post(API_URL + "join/group", {
+        "group_id": groupDetails.group_id,
+        "user_id": authState!.userId!, 
+      })
+      if (join.data.message == "already joined the group") {
+        Alert.alert("Cannot Join Group", "Already Joined");
+      }
+    }
+    catch (error) {
+      console.error(error);
+    }    
+  };
 
   // Modal to display "loading..."
   const loadingModal = () => (
@@ -712,7 +736,7 @@ export default function Index() {
             setReviewView("create");
           }
           else{
-            Alert.alert("Failure", "Please log in");
+            Alert.alert("Cannot Create Group", "Please log in first");
           }
         }}
         >
@@ -1282,7 +1306,8 @@ const styles = StyleSheet.create({
   join: {
     backgroundColor: "#023020",
     borderRadius: 20,
-    top: 210,
+    position: "absolute",
+    bottom: 10,
     width: "60%",
     height: "18%",
     justifyContent: 'center',
@@ -1291,6 +1316,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 20,
     fontWeight: "ultralight",
+    textAlign: "center",
+  },
+  joinSubText: {
+    color: "black",
+    fontSize: 15,
     textAlign: "center",
   },
 });
