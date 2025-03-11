@@ -209,10 +209,11 @@ const styles = StyleSheet.create({
     },
     createGroupModal: {
         backgroundColor: 'white',
+        top: 70,
         padding: 20,
         borderRadius: 20,
         width: '80%',
-        height: '40%', 
+        height: '37%', 
         // justifyContent: 'center',
         alignItems: 'center',
     },
@@ -233,17 +234,15 @@ const styles = StyleSheet.create({
     },
     datePicker: {
         right: 5,
-        top: 100,
+        top: 78,
         borderRadius: 17,
     },
     form: {
         gap: 10,
-        width: '65%',
+        width: '85%',
         height: "15%",
     },
     buttonlayout: {
-        flexDirection: "row",
-        gap: 10,
         height: "10%",
         justifyContent: 'center',
         alignItems: 'center',
@@ -255,6 +254,7 @@ const styles = StyleSheet.create({
         width: "120%",
         height: "65%",
         justifyContent: 'center',
+        marginBottom: 35,
     },
     buttontext: {
         color: "white",

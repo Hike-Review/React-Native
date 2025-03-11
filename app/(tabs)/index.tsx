@@ -415,13 +415,14 @@ export default function Index() {
         animationType = "fade"
       >
         <View style={styles.loadingOverlay}>
-          <View style={styles.createGroupModal}> 
-           <Text style={styles.createGroupHeader}>
-              Join Group {"\n"}  
+          <View style={styles.joinGroupModal}> 
+           <Text style={styles.joinGroupHeader}>
+              Join Group  
             </Text>
             <Text style={styles.joinSubText}>
-              {groupDetails.group_name} {"\n"}
-              {format(convertToDate(groupDetails.start_time), "LLLL d, h a")} 
+              <Text style={{ fontWeight: 'bold' }}>Name:</Text> {groupDetails.group_name} {"\n"}
+              <Text style={{ fontWeight: 'bold' }}>Description:</Text> {groupDetails.group_description} {"\n"}
+              <Text style={{ fontWeight: 'bold' }}>Start Time: </Text>{format(convertToDate(groupDetails.start_time), "LLLL d; h a")} 
             </Text>
             <TouchableOpacity
               style={styles.closeGroupModal}
@@ -468,6 +469,10 @@ export default function Index() {
       if (join.data.message == "already joined the group") {
         Alert.alert("Cannot Join Group", "Already Joined");
       }
+      else{
+        Alert.alert("Group Joined Successfully", groupDetails.name);
+      }
+      setReviewView("group");
     }
     catch (error) {
       console.error(error);
@@ -1149,9 +1154,10 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
+    alignSelf: 'center',
     borderWidth: 2,
     borderColor: 'white', 
-
+    width: "50%",
   },
   reviewButtonText: {
     color: 'white',
@@ -1159,21 +1165,23 @@ const styles = StyleSheet.create({
   },
   reviewList: {
     marginTop: 20,
-    width: 200,
+    width: 350,
   },
   reviewItem: {
     flexDirection: 'row', // Ensures layout is horizontal
     alignItems: 'center', // Align items properly
     width: '100%', // Expands width close to full screen
     marginVertical: 10,
-    backgroundColor: '#f7f7f7',
+    backgroundColor: 'white',
     padding: 15, // More spacing inside
-    borderRadius: 10, // Rounder edges for better look
+    borderRadius: 15, // Rounder edges for better look
     shadowColor: '#000', // Optional: Adds a subtle shadow
     shadowOffset: { width: 5, height: 5 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5, // Android shadow support
+    // borderWidth: 2,
+    // borderColor: "white",
   },
   profileImage: {
     width: 50,
@@ -1187,6 +1195,7 @@ const styles = StyleSheet.create({
   userCame: {
     fontWeight: 'bold',
     marginBottom: 5,
+    color: "black",
   },
   starDisplay: {
     flexDirection: 'row',
@@ -1194,6 +1203,7 @@ const styles = StyleSheet.create({
   },
   reviewText: {
     fontSize: 12,
+    color: "black",
   },
   dateLeftRight: {
     position: 'relative',
@@ -1357,7 +1367,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 10,
     width: "60%",
-    height: "18%",
+    height: "30%",
     justifyContent: 'center',
   },
   joinText: {
@@ -1369,6 +1379,22 @@ const styles = StyleSheet.create({
   joinSubText: {
     color: "black",
     fontSize: 15,
+    textAlign: "center",
+  },
+  joinGroupModal: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 20,
+    width: '80%',
+    height: '25%', 
+    // justifyContent: 'center',
+    alignItems: 'center',
+  },
+  joinGroupHeader: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "black",
+    marginBottom: 20,
     textAlign: "center",
   },
 });
