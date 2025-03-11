@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal, Touchable, Button} from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal, Touchable, Button, Alert} from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -11,8 +11,7 @@ import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from '
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 
-import { Review } from '../modal';
-import MyModal from '../modal';
+import MyModal from '../components/modal';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
 import { format, add, sub, endOfDay, parse } from 'date-fns';
@@ -25,7 +24,6 @@ import { GroupCreation } from "../components/groupCreation";
 
 
 // Add interfacing
-
 export default function Index() {
   // Use context for login
   const { authState, updateFavorites } = useAuth();
@@ -43,13 +41,6 @@ export default function Index() {
 
   // Add modal visibility state
   const [modalVisible, setModalVisible] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
-
-  // Callback passed to the modal after a successful review submission.
-  const handleReviewSubmit = (newReview: Review) => {
-    setReviews(prevReviews => [...prevReviews, newReview]);
-    setModalVisible(false);
-  };
 
   // BottomSheet properties
   const snapPoints = useMemo(() => ["8%", "24.5%", "50%", "90%"], []);
@@ -70,23 +61,6 @@ export default function Index() {
   const [hikeData, setHikeData] = useState<Hike[]>([]);
   const [groupData, setGroupData] = useState<Group[]>([]);
   const [reviewData, setReviewData] = useState<Review[]>([]);
-
-  // Fetch Hikes from Database
-  useEffect(() => {
-    const fetchHikeData = async () => {
-      try {
-        const hikeDB = await axios.get(API_URL + "hikes");
-        // const groupDB = await axios.get(API_URL + "groups");
-        // setGroupData(groupDB.data);
-        setHikeData(hikeDB.data);
-      }
-      catch (error) {
-        console.error(error);
-      }    
-    }
-    fetchHikeData();
-  }, []);
-
 
   //Declared Hike Type
   type Hike = {
@@ -123,15 +97,121 @@ export default function Index() {
     "users_joined": Array<string>,   // list of usernames, change to list of user_id's if needed
   };
 
-  //Declared Review Type
-  // type Review = {
-  //   "review_id": number,
-  //   "trail_id": number,
-  //   "username": string,
-  //   "rating": number,
-  //   "review_text": string,
-  //   "review_date": string,
-  // };
+
+//Declared Review Type
+  type Review = {
+    "rating": number,
+    "review_date": string,
+    "review_id": number,
+    "review_text": string,
+    "trail_id": number,
+    "username": string,
+  };
+
+
+  // Call this function to fetch a particular hikes reviews
+  const fetchReviews = async (id: number) => {
+    try {
+      const revDB = await axios.get(API_URL + "reviews", {
+        params:{
+          trail_id: id,
+        }
+      });
+      setReviewData(revDB.data);   
+    }
+    catch (error) {
+      console.log(error);
+    }    
+  }
+
+  // Fetch Hikes from Database
+  useEffect(() => {
+    const fetchHikeData = async () => {
+      try {
+        const hikeDB = await axios.get(API_URL + "hikes");
+        setHikeData(hikeDB.data);
+      }
+      catch (error) {
+        console.log(error);
+      }    
+    }
+    fetchHikeData();
+  }, []);
+
+  // Callback passed to the modal after a successful review submission.
+  const handleReviewSubmit = async (ratings: number, reviews: string) => {
+    if (!reviews || ratings === 0) {
+      Alert.alert('Error', 'Please provide a rating and review text.');
+    }
+
+    try {
+      // Post to your backend. Replace with your real API endpoint.
+      const response = await axios.post(API_URL + "reviews", {
+          trail_id: hikeDetails.trail_id, 
+          username: authState?.username,  
+          rating: ratings,
+          review_text: reviews,
+        }
+      );
+
+      if (response.status === 201) {
+        Alert.alert('Success', 'Your review has been submitted!');
+        fetchReviews(hikeDetails.trail_id);
+      } else {
+        Alert.alert('Error', 'There was an issue submitting your review.');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'An error occurred while submitting your review.');
+    }
+    setModalVisible(false);
+  };
+
+  const reviewPage = (hikeDetails: Hike) => (
+    <View style={styles.container}>
+         
+         {/* Review Button */}
+          <TouchableOpacity style={styles.reviewButton} onPress={() => {
+            if (loggedIn() == false){
+              Alert.alert('Error', 'Please Sign in or Sign Up');
+            }else{
+              setModalVisible(true);
+            }
+          }}>
+           <Text style={styles.reviewButtonText}>Leave a Review</Text>
+         </TouchableOpacity>
+
+         {/* Render the modal */}
+         <MyModal
+           isOpen={modalVisible}
+           onClose={() => setModalVisible(false)}
+           onReviewSubmit={handleReviewSubmit}
+         />
+
+         {/* Render submitted reviews */}
+         <ScrollView style={styles.reviewList}>
+           {reviewData.map((rev, index) => (
+             <View key={index} style={styles.reviewItem}>
+               <View style={styles.reviewContent}>
+                 <Text style={styles.userCame}>{rev.username}</Text>
+                 <View style={styles.starDisplay}>
+                   {[1, 2, 3, 4, 5].map((star) => (
+                     <FontAwesome
+                       key={star}
+                       name={star <= rev.rating ? "star" : "star-o"}
+                       size={20}
+                       color="gold"
+                     />
+                   ))}
+                 </View>
+                 <Text style={styles.reviewText}>{rev.review_text}</Text>
+               </View>
+             </View>
+           ))}
+         </ScrollView>
+       </View>
+ );
+
 
   // Map properties initialization
   const mapRef = useRef<MapView | null>(null);
@@ -320,7 +400,7 @@ export default function Index() {
       </TouchableOpacity>
     </View>
   );
-
+  
   // Modal to display "loading..."
   const loadingModal = () => (
     <View style={styles.contentContainer}>
@@ -553,51 +633,6 @@ export default function Index() {
     </ScrollView>
   );
 
-  const reviewPage = (hikeDetails: Hike) => (
-     <View style={styles.container}>
-          
-          {/* Review Button */}
-          <TouchableOpacity style={styles.reviewButton} onPress={() => setModalVisible(true)}>
-            <Text style={styles.reviewButtonText}>Leave a Review</Text>
-          </TouchableOpacity>
-
-          {/* Render the modal */}
-          <MyModal
-            isOpen={modalVisible}
-            onClose={() => setModalVisible(false)}
-            onReviewSubmit={handleReviewSubmit}
-          />
-
-          {/* Render submitted reviews */}
-          <ScrollView style={styles.reviewList}>
-            {reviews.map((rev, index) => (
-              <View key={index} style={styles.reviewItem}>
-                <Image source={{ uri: rev.userProfile }} style={styles.profileImage} />
-                <View style={styles.reviewContent}>
-                  <Text style={styles.userName}>{rev.userName}</Text>
-                  <View style={styles.starDisplay}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <FontAwesome
-                        key={star}
-                        name={star <= rev.rating ? "star" : "star-o"}
-                        size={20}
-                        color="gold"
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.reviewText}>{rev.review}</Text>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-    // <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
-    //   <Text style={styles.bottomButtonText}>
-    //     Review Kendrick Ng
-    //   </Text>
-    // {/* show each review similar to hikeBottomSheet function */}
-    // </View>
-  );
 
   const groupPage = (id: string) => (
     <View style={styles.rangeContainer}>
@@ -1037,14 +1072,21 @@ const styles = StyleSheet.create({
   },
   reviewList: {
     marginTop: 20,
+    width: '200%',
   },
   reviewItem: {
-    flex: 500,
-    flexDirection: 'row',
+    flexDirection: 'row', // Ensures layout is horizontal
+    alignItems: 'center', // Align items properly
+    width: '100%', // Expands width close to full screen
     marginVertical: 10,
     backgroundColor: '#f7f7f7',
-    padding: 10,
-    borderRadius: 5,
+    padding: 15, // More spacing inside
+    borderRadius: 10, // Rounder edges for better look
+    shadowColor: '#000', // Optional: Adds a subtle shadow
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5, // Android shadow support
   },
   profileImage: {
     width: 50,
@@ -1055,7 +1097,7 @@ const styles = StyleSheet.create({
   reviewContent: {
     flex: 1,
   },
-  userName: {
+  userCame: {
     fontWeight: 'bold',
     marginBottom: 5,
   },
