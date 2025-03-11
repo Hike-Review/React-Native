@@ -12,6 +12,7 @@ interface SessionProps {
     onLogin?: (email: string, password: string) => Promise<any>;
     onLogout?: (hike_list: Array<string>) => Promise<any>;
     updateFavorites?: (hike_list: Array<string>) => Promise<any>;
+    updateGroups?: () => Promise<any>;
 };
 
 // Group State
@@ -78,7 +79,8 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                                 "username": response.data.user_details.username,
                                 "userId": response.data.user_details.user_id,
                                 "email": email,
-                                "favoriteHikes": response.data.user_details.favorite_hikes
+                                "favoriteHikes": response.data.user_details.favorite_hikes,
+                                "scheduledHikes": response.data.groups
                             });
                         }
                     }
@@ -113,8 +115,36 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             "username": contextValue.authState.username,
             "email": contextValue.authState.email,
             "userId": contextValue.authState.userId,
-            "favoriteHikes": hikes_list
+            "favoriteHikes": hikes_list,
+            "scheduledHikes": contextValue.authState.scheduledHikes
         });
+    }
+
+    // GET groups from 
+    const update_groups = async () => {
+        try{
+            // Get scheduled hikes from DB
+            await axios.get(API_URL + "auth/identity").then(
+                (response) => {
+                    console.log(response);
+                    if(response.status == 200){
+                        console.log(response);
+                        setLoginState({
+                            "accessToken": contextValue.authState.accessToken,
+                            "refreshToken": contextValue.authState.refreshToken,
+                            "username": contextValue.authState.username,
+                            "email": contextValue.authState.email,
+                            "userId": contextValue.authState.userId,
+                            "favoriteHikes": contextValue.authState.favoriteHikes,
+                            "scheduledHikes": response.data.groups
+                        });
+                    }
+                    return
+                }
+            );
+        } catch(e) {
+            return { error: true, msg: (e as any).response.data.msg };
+        }
     }
 
     const contextValue: any = {
@@ -122,6 +152,7 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       onLogin: login,
       onLogout: logout,
       updateFavorites: update_favorites,
+      updateGroups: update_groups,
       authState: loginState
     };
 

@@ -12,7 +12,7 @@ const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
 
 export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, dateConverter }) => {
     // For login context
-    const { authState } = useAuth();
+    const { authState, updateGroups } = useAuth();
 
     // Group Creation Form
     const { control, handleSubmit, setError, clearErrors, reset, formState: { errors } } = useForm({
@@ -50,8 +50,12 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
                     }
                     // Success
                     Alert.alert("Success", "Created group" + data.group_name);
-                    viewReset("group");
-                    dateReset(trail);
+                    // Re pulling groups attended by user
+                    updateGroups!().then(() =>
+                    {
+                        viewReset("group");
+                        dateReset(trail);
+                    });
                 }
             )
           }
@@ -174,6 +178,8 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
         </View>
     )
 }
+
+export default GroupCreation;
 
 const styles = StyleSheet.create({
     contentContainer: {

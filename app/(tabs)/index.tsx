@@ -29,7 +29,7 @@ export default function Index() {
   const [groupDetails, setGroup] = useState<any>("Error");
 
   // Use context for login
-  const { authState, updateFavorites } = useAuth();
+  const { authState, updateFavorites, updateGroups } = useAuth();
   
   const loggedIn = () => {
     return authState?.accessToken != null
@@ -471,6 +471,7 @@ export default function Index() {
       }
       else{
         Alert.alert("Group Joined Successfully", groupDetails.name);
+        await updateGroups!()
       }
       setReviewView("group");
     }

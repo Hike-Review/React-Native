@@ -4,6 +4,12 @@ import { Text, TextInput, View, StyleSheet, TouchableOpacity, ImageBackground, I
 import { useAuth } from './loginState';
 import { useFocusEffect } from 'expo-router';
 
+interface GroupAttendance {
+    group_name: string,
+    start_time: string,
+    trail_name: string
+};
+
 export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
     // Get authentication state
     const { authState } = useAuth();
@@ -27,6 +33,16 @@ export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
             )) : 
             <Text style={styles.favoriteHikeSubText}>
                 "No favorite hikes"
+            </Text>}
+            <Text style={styles.favoriteHikeTitle}>  Scheduled Hikes </Text>
+            {authState?.scheduledHikes && authState?.scheduledHikes.length > 0 ? 
+                authState.scheduledHikes!.map((group_listing: GroupAttendance, key: number) => (
+                <Text key={key} style={styles.favoriteHikeSubText}>
+                    Hike at {group_listing.trail_name} with {group_listing.group_name} @ {group_listing.start_time}
+                </Text>
+            )) : 
+            <Text style={styles.favoriteHikeSubText}>
+                "No scheduled hikes"
             </Text>
             }
           </ScrollView>
@@ -41,6 +57,8 @@ export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
       </ImageBackground>
     );
 }
+
+export default ProfileViewComponent;
 
 const styles = StyleSheet.create({
     container: {
