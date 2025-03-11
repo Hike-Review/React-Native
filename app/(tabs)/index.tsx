@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal, Touchable, Button} from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal, Touchable, Button, Alert} from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -658,7 +658,14 @@ export default function Index() {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.createGroup}
-        onPress={() => setReviewView("create")}
+        onPress={() => {
+          if(loggedIn()){
+            setReviewView("create");
+          }
+          else{
+            Alert.alert("Failure", "Please log in");
+          }
+        }}
         >
         <Icon
             name="plus"
@@ -861,7 +868,7 @@ export default function Index() {
             reviewView === 'rev' ? reviewPage(hikeDetails) :
             reviewView === 'group' ? groupPage(hikeDetails.trail_id) : 
             reviewView === 'create' ? 
-              <GroupCreation
+                <GroupCreation
                 trail={hikeDetails.trail_id}
                 viewReset={(view:string) => setReviewView(view)}
                 dateReset={(id: string) => resetDate(id)}
