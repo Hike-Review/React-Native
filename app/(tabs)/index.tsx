@@ -27,6 +27,9 @@ import { GroupCreation } from "../components/groupCreation";
 // Add interfacing
 
 export default function Index() {
+  // Group Select Handling
+  const [groupDetails, setGroup] = useState<any>("Error");
+
   // Use context for login
   const { authState, updateFavorites } = useAuth();
   
@@ -304,11 +307,15 @@ export default function Index() {
   };
 
   // Group Buttons
-  const groupBottomSheet = (group: Group) => (
+  const groupBottomSheet = (group: Group, index: number) => (
     <View key={Number(group.group_id)} style={styles.groupSelectContainer}>
       <TouchableOpacity
         style={styles.groupSelect}
         activeOpacity={0.8}
+        onPress = {() => {
+          setReviewView("join");
+          setGroup(groupData[index]);
+        }}
       >
         <Text style={styles.groupTitle}>
           {group.group_name}
@@ -318,6 +325,48 @@ export default function Index() {
           {format(convertToDate(group.start_time), "LLLL d, h a")}
         </Text>
       </TouchableOpacity>
+    </View>
+  );
+
+  const joinGroup = () => (
+    <View style={styles.contentContainer}>
+      <Modal
+        transparent = {true}
+        animationType = "fade"
+      >
+        <View style={styles.loadingOverlay}>
+          <View style={styles.createGroupModal}> 
+           <Text style={styles.createGroupHeader}>
+              Join Group {"\n"}
+              {groupDetails.group_name} {"\n"}
+              {format(convertToDate(groupDetails.start_time), "LLLL d, h a")}   
+            </Text>
+            <TouchableOpacity
+              style={styles.closeGroupModal}
+              onPress={() => setReviewView("group")}
+            >
+            <Icon
+              name="close"
+              color={"red"}
+              size = {35}
+              style={{
+                position: "absolute",
+                top: 6,
+                left: 12,
+              }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.join}
+            // onPress={}
+            >
+            <Text style={styles.joinText}>
+              Join
+            </Text>
+          </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 
@@ -638,7 +687,7 @@ export default function Index() {
       </View>
       <ScrollView style={styles.groupBottom}>
         
-        { loading ? loadingModal() : groupData.map((group) => (groupBottomSheet(group)) )}
+        { loading ? loadingModal() : groupData.map((group, index) => (groupBottomSheet(group, index)) )}
         
       </ScrollView>
       <TouchableOpacity
@@ -874,7 +923,8 @@ export default function Index() {
                 dateReset={(id: string) => resetDate(id)}
                 dateConverter={convertToDate}
               /> : 
-            null
+            reviewView === 'join' ? joinGroup() :
+            null 
           }
         </SafeAreaView>
         )}
@@ -1210,6 +1260,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "black",
     marginBottom: 20,
+    textAlign: "center",
   },
   input: {
     height: 44,
@@ -1227,5 +1278,19 @@ const styles = StyleSheet.create({
     right: 5,
     top: 100,
     borderRadius: 17,
+  },
+  join: {
+    backgroundColor: "#023020",
+    borderRadius: 20,
+    top: 210,
+    width: "60%",
+    height: "18%",
+    justifyContent: 'center',
+  },
+  joinText: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "ultralight",
+    textAlign: "center",
   },
 });
