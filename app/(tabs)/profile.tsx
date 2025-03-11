@@ -36,6 +36,12 @@ export default function Profile() {
     return result;
   }
 
+  // Modal state
+  const [loadingState, setLoadingState] = useState<boolean>(false);
+  const [modalText, setModalText] = useState<string>("Loading...");
+
+  const [signUpState, setSignUpState] = useState<boolean>(false);
+
   // Sign up function
   const signup = async (username: string, email: string, password: string) => {
     const result = await onRegister!(username, email, password);
@@ -73,12 +79,6 @@ export default function Profile() {
     onLogout!(authState!.favoriteHikes!);
   }
 
-  // Modal state
-  const [loadingState, setLoadingState] = useState<boolean>(false);
-  const [modalText, setModalText] = useState<string>("Loading...");
-
-  const [signUpState, setSignUpState] = useState<boolean>(false);
-
   //console.log("Login State: ");
   // console.log(loginState);
 
@@ -92,14 +92,12 @@ export default function Profile() {
 
   // Handle form submission
   const onSubmit = (data: any) => {
-    // console.log('Submitted Data:', data); 
     clearErrors();
     setLoadingState(true);
     login(data.email, data.password).then(
       response => {
         // Login Successful
         if(response.status == 200){
-          setLoadingState(false);
           loginSuccessful(true);
         }
         else{
@@ -109,6 +107,7 @@ export default function Profile() {
       }
     );
     // Reset login form
+    setLoadingState(false);
     reset();
   };
 
@@ -130,12 +129,12 @@ export default function Profile() {
         </Text>
         <Modal
           visible={loadingState} 
-          transparent 
+          transparent = {false}
           animationType="fade"
         >
-          <View style={styles.overlay}>
-            <View style={styles.modal}>
-              <Text> {modalText} </Text>
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingModal}>
+              <Text style={{ fontSize: 20}}> {modalText} </Text>
             </View>
           </View>
         </Modal>
@@ -325,6 +324,24 @@ const styles = StyleSheet.create({
     padding: 20,
     marginRight: 10,
     marginLeft: 10,
-  }
+  },
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: "white",
+    alignSelf: "center",
+    width: "100%",
+    height: "100%",
+  },
+  loadingModal: {
+      backgroundColor: 'white',
+      padding: 20,
+      borderRadius: 20,
+      width: '100%',
+      height: '100%', 
+      justifyContent: 'center',
+      alignItems: 'center',
+  },
 });
 
