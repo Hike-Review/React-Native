@@ -99,15 +99,15 @@ export default function Profile() {
       response => {
         // Login Successful
         if(response.status == 200){
+          setLoadingState(false);
           loginSuccessful(true);
         }
         else{
-          console.log("login failed");
+          console.error("login failed");
           setError("password", {type: 'manual'});
         }
-        setLoadingState(false);
       }
-    )
+    );
     // Reset login form
     reset();
   };
@@ -199,17 +199,17 @@ export default function Profile() {
         </View>
         <View style = {styles.buttonlayout}> 
           <TouchableOpacity 
-          style={styles.button}
-          onPress={handleSubmit(onSubmit, onInvalid)}>
-            <Text style={styles.buttontext}>
-              Sign In
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
           style={styles.button} 
           onPress={() => setSignUpState(true)}>
             <Text style={styles.buttontext}>
               Sign Up
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+          style={styles.button}
+          onPress={handleSubmit(onSubmit, onInvalid)}>
+            <Text style={styles.buttontext}>
+              Sign In
             </Text>
           </TouchableOpacity>
         </View>
@@ -217,9 +217,7 @@ export default function Profile() {
       : 
       <ProfileViewComponent
         logout={() => {logout()}}
-      >
-
-      </ProfileViewComponent>
+      />
       }
     </GestureHandlerRootView>
   );
@@ -283,10 +281,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modal: {
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
     padding: 20,
-    borderRadius: 5,
-    minWidth: 300,
+    borderRadius: 20,
+    width: '80%',
+    height: '40%', 
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileContainer: {
     flex: 1,

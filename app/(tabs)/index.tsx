@@ -1,34 +1,49 @@
-import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Alert} from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal, Touchable, Button, Alert} from "react-native";
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
 import * as Location from 'expo-location';
 import Svg, {Path, Circle, Ellipse} from 'react-native-svg'
 import axios from 'axios';
+import { useForm, Controller } from 'react-hook-form';
 
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { GestureDetector, GestureHandlerRootView, RectButton } from 'react-native-gesture-handler';
+import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
 
 import MyModal from '../components/modal';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
+import { format, add, sub, endOfDay, parse } from 'date-fns';
+import reanimatedJS from "react-native-reanimated/lib/typescript/js-reanimated";
+import { registerWebModule } from "expo";
+import RNDateTimePicker from '@react-native-community/datetimepicker';
+
 import { useAuth } from "../components/loginState";
+import { GroupCreation } from "../components/groupCreation";
+
 
 // Add interfacing
 export default function Index() {
   // Use context for login
-  const { authState } = useAuth();
+  const { authState, updateFavorites } = useAuth();
   
   const loggedIn = () => {
     return authState?.accessToken != null
   }
 
+  // Loading for group page
+  const [loading, setLoading] = useState(false);
+
+  // Acquire initial date range
+  const [start, updateStart] = useState<Date>(new Date());
+  const [end, updateEnd] = useState<Date>(endOfDay(add(start, {days:6})));
+
   // Add modal visibility state
   const [modalVisible, setModalVisible] = useState(false);
 
   // BottomSheet properties
-  const snapPoints = useMemo(() => ["8%", "25%", "50%", "90%"], []);
+  const snapPoints = useMemo(() => ["8%", "24.5%", "50%", "90%"], []);
   const sheetRef = useRef<BottomSheet>(null);
 
   // Markers view
@@ -63,19 +78,22 @@ export default function Index() {
     "start_lng": number,
     "tags": string,
     "trail_id": string,
+    "trail_image": string,
     "trail_name": string,
   };
 
   //Declared Group Type
   type Group = {
     "created_at": string,
-    "created_by": number,
+    "created_by": string,     //number or string?
     "group_description": string,
     "group_host": string,
-    "group_id": number,
+    "group_id": string,       //number or string?
     "group_name": string,
     "start_time": string,
-    "trail_id": number,
+    "total_users_joined": number;
+    "trail_id": string,
+    "trail_name": string,
     "users_joined": Array<string>,   // list of usernames, change to list of user_id's if needed
   };
 
@@ -261,6 +279,12 @@ export default function Index() {
     pathViewSelect(false);
     setReviewView("desc");
     useHikeBottom(true);
+
+    // Reset Dates
+    const tempStart = new Date();
+    const tempEnd = endOfDay(add(tempStart, {days:6}));
+    updateStart(tempStart);
+    updateEnd(tempEnd);
   };
 
   // Handling marker selection
@@ -298,29 +322,33 @@ export default function Index() {
     catch{
       console.error("Unable to update BottomSheet reference.");
     }
+
+    fetchGroups(hikeData[key].trail_id, start, end);
   }
 
   // Add/Remove favorites
   const updateUserFavorites = (hike_name: string) => {
-    console.log(hike_name);
     try{
       if(authState){
         if(authState?.favoriteHikes?.includes(hike_name)){
-          let idx = authState!.favoriteHikes!.indexOf(hike_name);
+          let oldList = authState.favoriteHikes.slice();
+          let idx = oldList.indexOf(hike_name);
           if (idx > -1) {
-            authState!.favoriteHikes!.splice(idx, 1);
+            oldList.splice(idx, 1);
+            updateFavorites!(oldList);
           }
           setFavoriteIndicator("white");
         }
         else{
-          authState!.favoriteHikes!.push(hike_name);
+          let oldList = authState!.favoriteHikes!.slice();
+          oldList.push(hike_name);
+          updateFavorites!(oldList);
           setFavoriteIndicator("red");
         }
       }
     } catch(error){
       console.error(error);
     }
-    console.log(authState?.favoriteHikes);
   }
 
   // Selecting between Hikes or Groups on the bottom sheet
@@ -337,7 +365,7 @@ export default function Index() {
         activeOpacity={0.8}
       >
         <Image 
-          source = {require('../../assets/images/exhike.jpg')}
+          source = {{uri: hike.trail_image}}
           style={styles.hikeBottomImage}
         />
         <Text style={styles.boldText}>
@@ -350,36 +378,334 @@ export default function Index() {
     </View>
   );
 
-  // Group View
+  const convertToDate = (dateString: string) => {
+    // Convert a string into a date object for formatting 
+    return parse(dateString, 'yyyy-MM-dd HH:mm:ss', new Date());
+  };
+
+  // Group Buttons
   const groupBottomSheet = (group: Group) => (
-    <View key={Number(group.trail_id)} style={styles.contentContainer}>
-      <Text>
-        Kendrick Ng
-      </Text>
+    <View key={Number(group.group_id)} style={styles.groupSelectContainer}>
+      <TouchableOpacity
+        style={styles.groupSelect}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.groupTitle}>
+          {group.group_name}
+        </Text>
+        <Text style={styles.groupSubText}>
+          {group.group_description} {"\n"}
+          {format(convertToDate(group.start_time), "LLLL d, h a")}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
+  
+  // Modal to display "loading..."
+  const loadingModal = () => (
+    <View style={styles.contentContainer}>
+      <Modal
+        transparent = {true}
+        animationType = "fade"
+      >
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loading}> 
+           <Text>
+              Loading ...
+            </Text>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  )
 
+  // Call this function to fetch a particular hikes reviews
+  const fetchReviews = async (id: string) => {
+    try {
+      const revDB = await axios.get(API_URL + "reviews", {params: {trail_id: id}});
+      // const revDB = await axios.get(API_URL + "reviews?trail_id=" + trail_id);
+      setReviewData(revDB.data);
+    }
+    catch (error) {
+      console.error(error);
+    }    
+  };
+
+  const incrementDate = (id: string) => {
+    // Enable loading modal
+    // setLoading(true);
+
+    // Temp Variables to call, deals with useState() batching
+    const tempStart = add(start, {days:7});
+    const tempEnd = endOfDay(add(end, {days:7}));
+
+    // Update start and end parameters
+    updateStart(tempStart);
+    updateEnd(tempEnd);
+
+    // API call
+    fetchGroups(id, tempStart, tempEnd);
+
+    //Wait 1 second (1000 ms) before removing loading modal
+    /*setTimeout(() => {
+      setLoading(false);
+    }, 1000)*/
+  };
+
+  const decrementDate = (id: string) => {
+    // Enable loading modal
+    // setLoading(true);
+
+    // Temp Variables to call, deals with useState() batching
+    const tempStart = sub(start, {days:7});
+    const tempEnd = endOfDay(sub(end, {days:7}));
+
+    // Update start and end parameters
+    updateStart(tempStart);
+    updateEnd(tempEnd);
+
+    // API call
+    fetchGroups(id, tempStart, tempEnd);
+
+    //Wait 1 second (1000 ms) before removing loading modal
+    /*setTimeout(() => {
+      setLoading(false);
+    }, 1000)*/
+  };
+
+  const resetDate = (id: string) => {
+    // Enable loading modal
+    // setLoading(true);
+
+    // Temp Variables to call, deals with useState() batching
+    const tempStart = new Date();
+    const tempEnd = endOfDay(add(tempStart, {days:6}));
+
+    // Update start and end parameters
+    updateStart(tempStart);
+    updateEnd(tempEnd);
+
+    // API call
+    fetchGroups(id, tempStart, tempEnd);
+
+    //Wait 1 second (1000 ms) before removing loading modal
+    /*setTimeout(() => {
+      setLoading(false);
+    }, 1000)*/
+  };
+  
+  const { control, handleSubmit, setError, clearErrors, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      email: "",
+      password: ""
+    }
+  });
+
+  const [date, setDate] = useState(new Date())
+  const [open, setOpen] = useState(false)
+
+  /*const createGroup = () => (
+    <View style={styles.contentContainer}>
+      <Modal
+        transparent = {true}
+        animationType = "fade"
+      >
+        <View style={styles.loadingOverlay}>
+          <View style={styles.createGroupModal}> 
+           <Text style={styles.createGroupHeader}>
+              New Group
+            </Text>
+            <View style={styles.form}>
+              <Controller
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={styles.input} 
+                  placeholder="Group Name" 
+                  placeholderTextColor={'gray'}
+                  onChangeText = {onChange}
+                  value={value}
+                  onBlur={() => {}}
+                />
+              )}
+              name="email"
+              rules = {
+                {
+                  required: true
+                }
+              }
+              />
+              <Controller
+                control={control}
+                render={({field: {onChange, value}}) => (
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Group Description" 
+                    placeholderTextColor={'gray'}
+                    onChangeText = {onChange}
+                    value={value}
+                    onBlur={() => {}}
+                  />
+                )}
+                name="password"
+                rules = {
+                  {
+                    required: true
+                  }
+                }
+              /> 
+                {(errors.email) && <Text> {"Please enter your email and password"} </Text>}
+                {(errors.password) && <Text> {"Invalid Credentials"} </Text>}
+            </View>
+            <TouchableOpacity
+              style={styles.closeGroupModal}
+              onPress={() => setReviewView("group")}
+            >
+            <Icon
+              name="close"
+              color={"red"}
+              size = {35}
+              style={{
+                position: "absolute",
+                top: 6,
+                left: 12,
+              }}
+            />
+          </TouchableOpacity>
+          <RNDateTimePicker
+            style = {styles.datePicker}
+            testID="dateTimePicker"
+            value={date}
+            minimumDate={new Date()}
+            mode="datetime"
+            display="default"
+            textColor= "black"
+            // onChange={onChange}
+          />
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );*/
+
+  // Call this function to fetch a particular hikes reviews
+  const fetchGroups = async (id: string, startDate: Date, endDate: Date) => {
+    // Enable loading modal
+    setLoading(true);
+    try {
+      const groupDB = await axios.get(API_URL + "groups", {
+        params: {
+          start_date_range: format(startDate, 'yyyy-MM-dd HH:mm:ss'),
+          end_date_range: format(endDate, 'yyyy-MM-dd HH:mm:ss'),
+          trail_id: id,
+        }
+      }).then(
+        (response) => {
+          setGroupData(response.data);
+          // console.log(format(start, 'yyyy-MM-dd HH:mm:ss'), format(end, 'yyyy-MM-dd HH:mm:ss'));
+          // Delay for processing
+          setTimeout(() => {
+            setLoading(false);
+          }, 1000);
+        }
+      );
+    }
+    catch (error) {
+      console.error(error);
+      setLoading(false);
+    }    
+  };
 
   // Select Review or Group View
   const [reviewView, setReviewView] = useState("desc");
 
   const descriptionPage = (hikeDetails: Hike) => (
-    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
+    <ScrollView>
       <Text style={styles.bottomButtonText}>
-        Description Kendrick Ng: {hikeDetails.description}
+        Description: {hikeDetails.description} {"\n"}
       </Text>
       {/* display image from hike object */}
+      <Image 
+          source = {{uri: hikeDetails.trail_image}}
+          style={styles.hikeBottomImage}
+        />
       {/* add any other useful description */}
-    </View>
+    </ScrollView>
   );
 
 
-  const groupPage = (hikeDetails: Group) => (
-    <View key={Number(hikeDetails.trail_id)} style={styles.contentContainer}>
-      <Text style={styles.bottomButtonText}>
-        Group Kendrick Ng
-      </Text>
-    {/* show if available groups are present for this hike */}
+  const groupPage = (id: string) => (
+    <View style={styles.rangeContainer}>
+      <View style={styles.rangeTitle}>
+        <TouchableOpacity
+            style={styles.dateLeftRight}
+            onPress={() => decrementDate(id)}
+            >
+            <Icon
+              name="arrow-left"
+              color={"white"}
+              size = {25}
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 13,
+              }}
+            />
+          </TouchableOpacity>
+          <Text style={styles.rangeText}>
+            {format(start, 'LLL. do')} - {format(end, 'LLL. do')}
+          </Text>
+          <TouchableOpacity
+            style={styles.dateLeftRight}
+            onPress={() => incrementDate(id)}
+            >
+            <Icon
+              name="arrow-right"
+              color={"white"}
+              size = {25}
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 13,
+              }}
+            />
+          </TouchableOpacity>
+      </View>
+      <ScrollView style={styles.groupBottom}>
+        
+        { loading ? loadingModal() : groupData.map((group) => (groupBottomSheet(group)) )}
+        
+      </ScrollView>
+      <TouchableOpacity
+        style={styles.resetDate}
+        onPress={() => resetDate(id)}
+        >
+        <Icon
+            name="refresh"
+            color={"white"}
+            size = {30}
+            style={{
+              position: "absolute",
+              top: 13,
+              left: 22,
+            }}
+          />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.createGroup}
+        onPress={() => setReviewView("create")}
+        >
+        <Icon
+            name="plus"
+            color={"white"}
+            size = {30}
+            style={{
+              position: "absolute",
+              top: 13,
+              left: 23,
+            }}
+          />
+      </TouchableOpacity>
     </View>
   );
 
@@ -546,7 +872,6 @@ export default function Index() {
                 (reviewView === 'rev') && styles.bottomButtonPressed
               ]}
               onPressIn = {() => {
-                fetchReviews(hikeDetails.trail_id);
                 setReviewView("rev");
               }}
             >
@@ -566,18 +891,19 @@ export default function Index() {
               </Text>
             </Pressable>
           </View>
-          <BottomSheetScrollView>
-            <View style = {styles.groupReviewView}>
-                {/* {reviewView ? 
-                hikeData.map( (hike, index) => (reviewPage()) ) : 
-                hikeData.map( (hike, index) => (groupPage()) )} */}
-                {
-                  reviewView === 'desc' ? descriptionPage(hikeDetails) :
-                  reviewView === 'rev' ? reviewPage(hikeDetails) :
-                  reviewView === 'group' ? groupPage(hikeDetails) : null
-                }
-            </View>
-          </BottomSheetScrollView>
+          {
+            reviewView === 'desc' ? descriptionPage(hikeDetails) :
+            reviewView === 'rev' ? reviewPage(hikeDetails) :
+            reviewView === 'group' ? groupPage(hikeDetails.trail_id) : 
+            reviewView === 'create' ? 
+              <GroupCreation
+                trail={hikeDetails.trail_id}
+                viewReset={(view:string) => setReviewView(view)}
+                dateReset={(id: string) => resetDate(id)}
+                dateConverter={convertToDate}
+              /> : 
+            null
+          }
         </SafeAreaView>
         )}
       </BottomSheet>
@@ -586,14 +912,6 @@ export default function Index() {
   );
 }
 
-
-// Andres Modal
-{/* <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.modalButton}>
-  <Text style={styles.hikeSubHeader}>
-    Leave A Review
-  </Text>
-</TouchableOpacity>
-<MyModal isOpen={modalVisible} onClose={() => setModalVisible(false)} /> */}
 
 //Styles
 const styles = StyleSheet.create({
@@ -672,6 +990,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   hikeBottomImage: {
+    height: 170,
     width: 350,
     borderRadius: 15,
     marginBottom: 5,
@@ -700,13 +1019,9 @@ const styles = StyleSheet.create({
   bottomButtonPressed: {
     backgroundColor: "#636363",
   },
-  // modalButton: {
-  //   justifyContent: 'center',
-  //   alignItems: 'center',
-  // },
-  groupBox: {
+  groupBottom: {
     flex: 1,
-    backgroundColor: "green",
+    backgroundColor: "black",
   },
   groupReviewView: {
     flex: 1,
@@ -734,7 +1049,6 @@ const styles = StyleSheet.create({
     fontWeight: "ultralight",
     textAlign: "center",
   },
-  
   modalButton: {
     position: 'absolute',
     bottom: 50,
@@ -749,7 +1063,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'white', // You can use color names, HEX codes, or rgba values.
+    borderColor: 'white', 
 
   },
   reviewButtonText: {
@@ -760,7 +1074,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: '200%',
   },
-  //comments posted
   reviewItem: {
     flexDirection: 'row', // Ensures layout is horizontal
     alignItems: 'center', // Align items properly
@@ -794,5 +1107,160 @@ const styles = StyleSheet.create({
   },
   reviewText: {
     fontSize: 12,
+  },
+  dateLeftRight: {
+    position: 'relative',
+    backgroundColor: 'black',
+    padding: 25,
+    borderRadius: 17,
+    alignContent: "center",
+  },
+  rangeText: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "ultralight",
+    textAlign: "center",
+  },
+  rangeContainer: {
+    backgroundColor: "black",
+    flex: 1,
+    width: "100%",
+  },
+  rangeTitle: {
+    backgroundColor: "black",
+    flexDirection: "row",
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 20,
+    marginBottom: 25,
+  },
+  groupSelect: {
+    padding: 6,
+    margin: 6,
+    backgroundColor: "lightblue",
+    marginBottom: 15,
+    borderRadius: 25,
+    width: 320,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+  },
+  loading: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 20,
+    width: '60%',
+    height: '8%', 
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bottomRangeTitle: {
+    backgroundColor: "black",
+    flexDirection: "row",
+    height: 65,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 60,
+  },
+  bottomRangeButtons: {
+    position: 'relative',
+    backgroundColor: 'black',
+    padding: 20,
+    borderRadius: 10,
+    alignContent: "center",
+  },
+  bottomGroupButtonText: {
+    color: "white",
+    fontSize: 20,
+    height: 25,
+    fontWeight: "ultralight",
+    textAlign: "center",
+  },
+  groupTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "Black",
+    marginBottom: 2.5,
+  },
+  groupSubText: {
+    textAlign: 'center'
+  },
+  groupSelectContainer: {
+    backgroundColor: "black",
+    flex: 1,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  resetDate: {
+    position: 'absolute',
+    top: 430,
+    bottom: 15,
+    left: 10,
+    right: 315,
+    backgroundColor: 'blue',
+    padding: 20,
+    borderRadius: 20,
+    alignContent: "center",
+    justifyContent: "center",
+  },
+  createGroup: {
+    position: 'absolute',
+    top: 430,
+    bottom: 15,
+    left: 315,
+    right: 10,
+    backgroundColor: 'blue',
+    padding: 20,
+    borderRadius: 20,
+    alignContent: "center",
+    justifyContent: "center",
+  },
+  createGroupModal: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 20,
+    width: '80%',
+    height: '40%', 
+    // justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeGroupModal: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: 'white',
+    padding: 25,
+    borderRadius: 17,
+    alignContent: "center",
+  },
+  createGroupHeader: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "black",
+    marginBottom: 20,
+  },
+  input: {
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    backgroundColor: 'white'
+  },
+  form: {
+    gap: 10,
+    width: '65%',
+    height: "15%",
+  },
+  datePicker: {
+    right: 5,
+    top: 100,
+    borderRadius: 17,
   },
 });

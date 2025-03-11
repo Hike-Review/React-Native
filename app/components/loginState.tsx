@@ -11,6 +11,7 @@ interface SessionProps {
     onRegister?: (username: string, email: string, password: string) => Promise<any>;
     onLogin?: (email: string, password: string) => Promise<any>;
     onLogout?: (hike_list: Array<string>) => Promise<any>;
+    updateFavorites?: (hike_list: Array<string>) => Promise<any>;
 };
 
 // Group State
@@ -69,7 +70,6 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 axios.defaults.headers.common['Authorization'] = 'Bearer ' + loginResponse.data.tokens.access;
                 axios.get(API_URL + "auth/identity").then(
                     (response) => {
-                        console.log(response);
                         if(response.status == 200){
                             setLoginState({
                                 "accessToken": loginResponse.data.tokens.access,
@@ -92,9 +92,9 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         try{
             // Push favorite hikes to DB
             await axios.post(API_URL + "favorite/hikes", {
-                trail_names: hikes_list
+                favorite_hikes: hikes_list
             }).then(
-                () => {
+                (response) => {
                     axios.defaults.headers.common['Authorization'] = "";
                     setLoginState({});
                 }
@@ -104,15 +104,23 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         }
     }
 
+    const update_favorites = async (hikes_list: Array<string>) => {
+        setLoginState({
+            "accessToken": contextValue.authState.accessToken,
+            "refreshToken": contextValue.authState.refreshToken,
+            "username": contextValue.authState.username,
+            "email": contextValue.authState.email,
+            "favoriteHikes": hikes_list
+        });
+    }
+
     const contextValue: any = {
       onRegister: register,
       onLogin: login,
       onLogout: logout,
+      updateFavorites: update_favorites,
       authState: loginState
     };
-
-    console.log("Login Context: ");
-    console.log(contextValue);
 
     return (
       <LoginContext.Provider value={contextValue}>

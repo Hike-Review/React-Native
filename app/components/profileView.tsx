@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { Text, TextInput, View, StyleSheet, TouchableOpacity, ImageBackground, Image } from 'react-native';
+import { Text, TextInput, View, StyleSheet, TouchableOpacity, ImageBackground, Image, ScrollView } from 'react-native';
 import { useAuth } from './loginState';
+import { useFocusEffect } from 'expo-router';
 
 export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
     // Get authentication state
@@ -17,9 +18,18 @@ export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
           <Image source={require('../../assets/images/default-profile-pic.jpg')} style={styles.profilePicture} />
           <Text style={styles.name}>{authState?.username ? authState?.username : null}</Text>
           <Text style={styles.email}>{authState?.email ? authState?.email : null}</Text>
-          <View style={styles.favoriteHikesContainer}>
-            <Text> Test </Text>
-          </View>
+          <ScrollView style={styles.favoriteHikesContainer}>
+            <Text style={styles.favoriteHikeTitle}>  Favorites </Text>
+            {authState?.favoriteHikes && authState?.favoriteHikes.length > 0 ? authState.favoriteHikes!.map((hike_name: string, key: number) => (
+                <Text key={key} style={styles.favoriteHikeSubText}>
+                    {hike_name}
+                </Text>
+            )) : 
+            <Text style={styles.favoriteHikeSubText}>
+                "No favorite hikes"
+            </Text>
+            }
+          </ScrollView>
           <TouchableOpacity 
           style={styles.logout}
           onPress={logout}>
@@ -57,6 +67,7 @@ const styles = StyleSheet.create({
         padding: 20,
         marginRight: 10,
         marginLeft: 10,
+        borderRadius: 15,
     },
     buttontext: {
         color: "white",
@@ -67,10 +78,12 @@ const styles = StyleSheet.create({
     profileContainer: {
         flex: 1,
         alignItems: 'center',
-        padding: 50,
+        width: 300,
+        padding: 75,
         marginTop: 75,
         marginBottom: 20,
-        backgroundColor: 'white'
+        backgroundColor: 'white',
+        borderRadius: 20,
     },
     profilePicture: {
         width: 150,
@@ -79,8 +92,20 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     favoriteHikesContainer: {
-        backgroundColor: "grey",
-        marginTop: 10,
-        width: 150
-    }
+        flex: 1,
+        backgroundColor: "lightgrey",
+        marginTop: 15,
+        marginBottom: 15,
+        width: 280,
+        height: "70%",
+        borderRadius: 15,
+    },
+    favoriteHikeTitle: {
+        fontWeight: "condensedBold",
+        fontSize: 22,
+    },
+    favoriteHikeSubText: {
+        textAlign: "center",
+        fontSize: 15,
+    },
 });
