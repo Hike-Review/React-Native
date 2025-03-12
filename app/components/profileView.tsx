@@ -72,9 +72,13 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 5,
+        width: 280,
+        textAlign: "center",
     },
     email: {
         fontSize: 16,
+        width: 280,
+        textAlign: "center",
     },
     logout: {
         position: 'absolute',

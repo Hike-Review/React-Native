@@ -1,39 +1,78 @@
-import { Text, View, StyleSheet, TouchableOpacity, Image, InteractionManager, Pressable, ScrollView, Modal, Touchable, Button, Alert} from "react-native";
-import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
+import { Text, View, StyleSheet, TouchableOpacity, Image, Pressable, ScrollView, Modal, Alert} from "react-native";
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import MapView, { LatLng, Marker, PROVIDER_DEFAULT, Polyline} from 'react-native-maps';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from 'expo-location';
-import Svg, {Path, Circle, Ellipse} from 'react-native-svg'
+import { format, add, sub, endOfDay, parse, isPast } from 'date-fns';
 import axios from 'axios';
-import { useForm, Controller } from 'react-hook-form';
 
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from 'react-native-gesture-handler';
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Icon from '@expo/vector-icons/FontAwesome';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 import MyModal from '../components/modal';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { forceTouchHandlerName } from "react-native-gesture-handler/lib/typescript/handlers/ForceTouchGestureHandler";
-import { format, add, sub, endOfDay, parse } from 'date-fns';
-import reanimatedJS from "react-native-reanimated/lib/typescript/js-reanimated";
-import { registerWebModule } from "expo";
-import RNDateTimePicker from '@react-native-community/datetimepicker';
-
 import { useAuth } from "../components/loginState";
 import { GroupCreation } from "../components/groupCreation";
+
+//Declared Hike Interface
+type Hike = {
+  created_at: string,
+  creator_id: string,
+  description: string,
+  difficulty: string,
+  distance: string,
+  duration: string,
+  end_lat: number,
+  end_lng: number,
+  rating: string,
+  routing_points: Array<Array<number>>,
+  start_lat: number,
+  start_lng: number,
+  tags: string,
+  trail_id: string,
+  trail_image: string,
+  trail_name: string,
+};
+
+//Declared Group Interface
+interface Group {
+  created_at: string,
+  created_by: string,     
+  group_description: string,
+  group_host: string,
+  group_id: string,       
+  group_name: string,
+  start_time: string,
+  total_users_joined: number;
+  trail_id: string,
+  trail_name: string,
+  users_joined: Array<number>,   
+};
+
+
+//Declared Review Interface
+interface Review {
+  rating: number,
+  review_date: string,
+  review_id: number,
+  review_text: string,
+  trail_id: number,
+  username: string,
+};
+
+// Axios Server Calling
+const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
 
 
 // Add interfacing
 export default function Index() {
+  
   // Group Select Handling
   const [groupDetails, setGroup] = useState<any>("Error");
 
   // Use context for login
   const { authState, updateFavorites, updateGroups } = useAuth();
-  
-  const loggedIn = () => {
-    return authState?.accessToken != null
-  }
 
   // Loading for group page
   const [loading, setLoading] = useState(false);
@@ -52,80 +91,30 @@ export default function Index() {
   // Markers view
   const [markersShown, setMarkerState] = useState<boolean>(true);
 
-  // Route view
+  // Init region on map if not declared
+  const [initialRegion, setInitialRegion] = useState({
+    latitude: 37.78825,
+    longitude: -122.4324,
+    latitudeDelta: 0.1,
+    longitudeDelta: 0.1,
+  });
+
+  // Route view w/ selected hike
   const [displayedPath, setPathView] = useState<LatLng[]>([]);
   const [hikeDetails, setHike] = useState<any>("ERROR");
   const [pathViewSelected, pathViewSelect] = useState<boolean>(false);
   const [favoriteIndicator, setFavoriteIndicator] = useState<"red" | "white">("white");
 
-  // Axios Server Calling
-  const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
-
+  // State Variables to grab database data
   const [hikeData, setHikeData] = useState<Hike[]>([]);
   const [groupData, setGroupData] = useState<Group[]>([]);
   const [reviewData, setReviewData] = useState<Review[]>([]);
 
-  //Declared Hike Type
-  type Hike = {
-    "created_at": string,
-    "creator_id": string,
-    "description": string,
-    "difficulty": string,
-    "distance": string,
-    "duration": string,
-    "end_lat": number,
-    "end_lng": number,
-    "rating": string,
-    "routing_points": Array<Array<number>>,
-    "start_lat": number,
-    "start_lng": number,
-    "tags": string,
-    "trail_id": string,
-    "trail_image": string,
-    "trail_name": string,
-  };
+   // Select between views once a hike is selected; initialized to description
+   const [bottomView, setBottomView] = useState("desc");
 
-  //Declared Group Type
-  type Group = {
-    "created_at": string,
-    "created_by": string,     //number or string?
-    "group_description": string,
-    "group_host": string,
-    "group_id": string,       //number or string?
-    "group_name": string,
-    "start_time": string,
-    "total_users_joined": number;
-    "trail_id": string,
-    "trail_name": string,
-    "users_joined": Array<string>,   // list of usernames, change to list of user_id's if needed
-  };
-
-
-//Declared Review Type
-  type Review = {
-    "rating": number,
-    "review_date": string,
-    "review_id": number,
-    "review_text": string,
-    "trail_id": number,
-    "username": string,
-  };
-
-
-  // Call this function to fetch a particular hikes reviews
-  /*const fetchReviews = async (id: number) => {
-    try {
-      const revDB = await axios.get(API_URL + "reviews", {
-        params:{
-          trail_id: id,
-        }
-      });
-      setReviewData(revDB.data);   
-    }
-    catch (error) {
-      console.log(error);
-    }    
-  }*/
+   // Map properties initialization
+  const mapRef = useRef<MapView | null>(null);
 
   // Fetch Hikes from Database
   useEffect(() => {
@@ -141,6 +130,26 @@ export default function Index() {
     fetchHikeData();
   }, []);
 
+  //Get location permissions and set region
+  useEffect(() => {
+    const getCurrentLocation = async() => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        return;
+      }
+      let loc = await Location.getCurrentPositionAsync({});
+
+      setInitialRegion ({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        latitudeDelta: 0.03,
+        longitudeDelta: 0.03,
+      });
+
+    }
+    getCurrentLocation();
+  }, []);
+
   // Callback passed to the modal after a successful review submission.
   const handleReviewSubmit = async (ratings: number, reviews: string) => {
     if (!reviews || ratings === 0) {
@@ -148,7 +157,7 @@ export default function Index() {
     }
 
     try {
-      // Post to your backend. Replace with your real API endpoint.
+      // Post to backend.
       const response = await axios.post(API_URL + "reviews", {
           trail_id: hikeDetails.trail_id, 
           username: authState?.username,  
@@ -169,7 +178,14 @@ export default function Index() {
     setModalVisible(false);
   };
 
-  const reviewPage = (hikeDetails: Hike) => (
+  // Helper function to check if loggin in
+  const loggedIn = () => {
+    return authState?.accessToken != null
+  }
+
+  // Review Page
+  const reviewPage = () => (
+    // Container
     <View style={styles.container}>
          
          {/* Review Button */}
@@ -215,51 +231,6 @@ export default function Index() {
  );
 
 
-  // Map properties initialization
-  const mapRef = useRef<MapView | null>(null);
-
-  const [location, setLocation] = useState<Location.LocationObject>({
-    coords: {
-      latitude: 37.78825,
-      longitude: -122.4324,
-      altitude: null,
-      accuracy: null,
-      altitudeAccuracy: null,
-      heading: null,
-      speed: null
-    },
-    timestamp: Date.now()
-  });
-
-  const [initialRegion, setInitialRegion] = useState({
-      latitude: 37.78825,
-      longitude: -122.4324,
-      latitudeDelta: 0.1,
-      longitudeDelta: 0.1,
-  });
-
-
-  //Get location permissions and set region
-  useEffect(() => {
-    const getCurrentLocation = async() => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return;
-      }
-      let loc = await Location.getCurrentPositionAsync({});
-      setLocation(loc);
-
-      setInitialRegion ({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        latitudeDelta: 0.03,
-        longitudeDelta: 0.03,
-      });
-
-    }
-    getCurrentLocation();
-  }, []);
-
   //Reset region for button
   const resetLocation = () => {
     // Update Sheet Ref
@@ -279,8 +250,7 @@ export default function Index() {
     setMarkerState(true);
     // Transition to Map View
     pathViewSelect(false);
-    setReviewView("desc");
-    useHikeBottom(true);
+    setBottomView("desc");
 
     // Reset Dates
     const tempStart = new Date();
@@ -322,9 +292,10 @@ export default function Index() {
       sheetRef.current?.snapToIndex(1);
     }
     catch{
-      console.error("Unable to update BottomSheet reference.");
+      Alert.alert("Error", "Unable to update BottomSheet reference.");
     }
 
+    // Get group based on hike selected
     fetchGroups(hikeData[key].trail_id, start, end);
   }
 
@@ -349,18 +320,15 @@ export default function Index() {
         }
       }
     } catch(error){
-      console.error(error);
+      Alert.alert("Error", String(error));
     }
   }
 
-  // Selecting between Hikes or Groups on the bottom sheet
-  const [hikeBottom, useHikeBottom] = useState(true);
-
-  // Hike View
+  // Function to display pressables nodes for each hike in the database; appears on home screen
   const hikeBottomSheet = (hike: Hike, index: number) => (
       <View key={Number(hike.trail_id)} style={styles.contentContainer}>
       <TouchableOpacity
-        onPress={(event) => (
+        onPress={() => (
           onMarkerSelection({latitude: hike.start_lat, longitude: hike.start_lng}, index)
         )}
         style = {styles.hikeBottomContainer}
@@ -380,19 +348,19 @@ export default function Index() {
     </View>
   );
 
+  // Helper function to convert a string into a date object for formatting 
   const convertToDate = (dateString: string) => {
-    // Convert a string into a date object for formatting 
     return parse(dateString, 'yyyy-MM-dd HH:mm:ss', new Date());
   };
 
-  // Group Buttons
+  // Function to display selectable group nodes
   const groupBottomSheet = (group: Group, index: number) => (
     <View key={Number(group.group_id)} style={styles.groupSelectContainer}>
       <TouchableOpacity
         style={styles.groupSelect}
         activeOpacity={0.8}
         onPress = {() => {
-          setReviewView("join");
+          setBottomView("join");
           setGroup(groupData[index]);
         }}
       >
@@ -407,6 +375,7 @@ export default function Index() {
     </View>
   );
 
+  // Pop up to allow for joining selected group
   const joinGroup = () => (
     <View style={styles.contentContainer}>
       <Modal
@@ -425,7 +394,7 @@ export default function Index() {
             </Text>
             <TouchableOpacity
               style={styles.closeGroupModal}
-              onPress={() => setReviewView("group")}
+              onPress={() => setBottomView("group")}
             >
             <Icon
               name="close"
@@ -459,6 +428,7 @@ export default function Index() {
     </View>
   );
 
+  // Axios method to join group based on selected group and user id
   const groupJoin = async () => {
     try {
       const join = await axios.post(API_URL + "join/group", {
@@ -472,7 +442,7 @@ export default function Index() {
         Alert.alert("Group Joined Successfully", groupDetails.name);
         await updateGroups!()
       }
-      setReviewView("group");
+      setBottomView("group");
     }
     catch (error) {
       console.error(error);
@@ -497,7 +467,7 @@ export default function Index() {
     </View>
   )
 
-  // Call this function to fetch a particular hikes reviews
+  // Function to fetch a particular hikes reviews
   const fetchReviews = async (id: number) => {
     try {
       const revDB = await axios.get(API_URL + "reviews", {params: {trail_id: id}}).then(
@@ -505,15 +475,13 @@ export default function Index() {
           setReviewData(response.data);
         }
       );
-      // const revDB = await axios.get(API_URL + "reviews?trail_id=" + trail_id);
-      // console.log(id);
-      // console.log(reviewData);
     }
     catch (error) {
       console.error(error);
     }
   };
 
+  // Increment date range by a week
   const incrementDate = (id: string) => {
     // Temp Variables to call, deals with useState() batching
     const tempStart = add(start, {days:7});
@@ -527,10 +495,17 @@ export default function Index() {
     fetchGroups(id, tempStart, tempEnd);
   };
 
+  // Decrement date range by a week
   const decrementDate = (id: string) => {
     // Temp Variables to call, deals with useState() batching
     const tempStart = sub(start, {days:7});
     const tempEnd = endOfDay(sub(end, {days:7}));
+
+    // Check if going in the past
+    if (isPast(tempEnd)) {
+      Alert.alert("Unavailable", "Cannot Check Past Groups")
+      return
+    }
 
     // Update start and end parameters
     updateStart(tempStart);
@@ -540,6 +515,7 @@ export default function Index() {
     fetchGroups(id, tempStart, tempEnd);
   };
 
+  // Reset date range to originial 
   const resetDate = (id: string) => {
     // Temp Variables to call, deals with useState() batching
     const tempStart = new Date();
@@ -552,16 +528,8 @@ export default function Index() {
     // API call
     fetchGroups(id, tempStart, tempEnd);
   };
-  
-  const { control, handleSubmit, setError, clearErrors, reset, formState: { errors } } = useForm({
-    defaultValues: {
-      email: "",
-      password: ""
-    }
-  });
 
-
-  // Call this function to fetch a particular hikes reviews
+  // Function to fetch a particular hikes reviews
   const fetchGroups = async (id: string, startDate: Date, endDate: Date) => {
     // Enable loading modal
     setLoading(true);
@@ -575,7 +543,6 @@ export default function Index() {
       }).then(
         (response) => {
           setGroupData(response.data);
-          // console.log(format(start, 'yyyy-MM-dd HH:mm:ss'), format(end, 'yyyy-MM-dd HH:mm:ss'));
           // Delay for processing
           setTimeout(() => {
             setLoading(false);
@@ -589,24 +556,21 @@ export default function Index() {
     }    
   };
 
-  // Select Review or Group View
-  const [reviewView, setReviewView] = useState("desc");
-
+  // Description page view on hike select
   const descriptionPage = (hikeDetails: Hike) => (
     <ScrollView>
-      <Text style={styles.bottomButtonText}>
-        Description: {hikeDetails.description} {"\n"}
+       <Image 
+          source = {{uri: hikeDetails.trail_image}}
+          style={styles.descImage}
+        />
+      <Text style={styles.descText}>
+        {hikeDetails.description} {"\n"}
       </Text>
       {/* display image from hike object */}
-      <Image 
-          source = {{uri: hikeDetails.trail_image}}
-          style={styles.hikeBottomImage}
-        />
-      {/* add any other useful description */}
     </ScrollView>
   );
 
-
+  // Group page view, handles date ranges and uses groupBottomSheet to map groups
   const groupPage = (id: string) => (
     <View style={styles.rangeContainer}>
       <View style={styles.rangeTitle}>
@@ -645,9 +609,14 @@ export default function Index() {
           </TouchableOpacity>
       </View>
       <ScrollView style={styles.groupBottom}>
-        
-        { loading ? loadingModal() : groupData.map((group, index) => (groupBottomSheet(group, index)) )}
-        
+        {
+          loading ? loadingModal() :
+          (groupData.length) > 0 ? groupData.map((group, index) => (groupBottomSheet(group, index)) ) : (
+            <Text style={styles.emptyGroup}>
+              No Available Groups in Selected Range
+            </Text>
+          )
+        }
       </ScrollView>
       <TouchableOpacity
         style={styles.resetDate}
@@ -668,7 +637,7 @@ export default function Index() {
         style={styles.createGroup}
         onPress={() => {
           if(loggedIn()){
-            setReviewView("create");
+            setBottomView("create");
           }
           else{
             Alert.alert("Cannot Create Group", "Please Log in or Sign Up");
@@ -689,10 +658,11 @@ export default function Index() {
     </View>
   );
 
-  //UI Setup
+  // Return statement; sets the view for the app
   return (
-    <GestureHandlerRootView>
 
+    <GestureHandlerRootView>
+      {/* // Show map */}
       <MapView 
         style={styles.map}
         provider={PROVIDER_DEFAULT}
@@ -700,6 +670,7 @@ export default function Index() {
         ref = {mapRef}
         showsUserLocation
       >
+        {/* Determine if markers should be shown and load appropriate view */}
         { markersShown ? 
           hikeData.map((hike, index) => (
             <Marker
@@ -720,6 +691,7 @@ export default function Index() {
          />
       </MapView>
 
+      {/* // Button to reset view on the map to user location */}
       <TouchableOpacity
         style = {styles.button}
         onPress={() => {resetLocation()}}
@@ -739,6 +711,7 @@ export default function Index() {
           />
       </TouchableOpacity>
 
+      {/* // Start of the bottomsheet; same component for home and hike select */}
       <BottomSheet
         ref={sheetRef}
         index={0}
@@ -753,16 +726,20 @@ export default function Index() {
           backgroundColor: "gray",
         }}
       >
+        {/* // Check if path view and load appropraite view */}
         { !pathViewSelected ? (
         <SafeAreaView style={styles.contentContainer}>
           <Text style={styles.bottomSheetHeadline}>
             Near You
           </Text>
           <BottomSheetScrollView>
+            {/* Map database hike data using hikeBottomSheet function to display hike nodes */}
             {hikeData.map( (hike, index) => (hikeBottomSheet(hike, index)) ) } 
           </BottomSheetScrollView>
-        </SafeAreaView>) : (
+        </SafeAreaView>) : 
+        (
         <SafeAreaView style={styles.contentContainer}>
+          {/* Closing out of the hike will reset locaiton */}
           <TouchableOpacity
             style={styles.hikeViewClose}
             onPress={resetLocation}
@@ -781,6 +758,7 @@ export default function Index() {
                 }}
               />
           </TouchableOpacity>
+          {/* Hike view header */}
           <Text style={styles.bottomSheetHeadline}>
             {hikeDetails.trail_name}
           </Text>
@@ -808,13 +786,14 @@ export default function Index() {
               />
           </TouchableOpacity> : null
           }
+          {/* Buttons set hike view bottom sheet (desc, review, group) */}
           <View style = {styles.bottomHikeButtonLayout}> 
             <Pressable 
               style = {[
                 styles.bottomHikeButtons, 
-                (reviewView === 'desc') && styles.bottomButtonPressed
+                (bottomView === 'desc') && styles.bottomButtonPressed
               ]}
-              onPressIn = {() => setReviewView("desc")}
+              onPressIn = {() => setBottomView("desc")}
             >
               <Text style={styles.bottomHikeButtonText}>
                 Description
@@ -823,11 +802,11 @@ export default function Index() {
             <Pressable 
               style = {[
                 styles.bottomHikeButtons, 
-                (reviewView === 'rev') && styles.bottomButtonPressed
+                (bottomView === 'rev') && styles.bottomButtonPressed
               ]}
               onPressIn = {() => {
                 fetchReviews(hikeDetails.trail_id);
-                setReviewView("rev");
+                setBottomView("rev");
               }}
             >
               <Text style={styles.bottomHikeButtonText}>
@@ -837,27 +816,28 @@ export default function Index() {
             <Pressable 
               style = {[
                 styles.bottomHikeButtons, 
-                (reviewView === 'group') && styles.bottomButtonPressed
+                (bottomView === 'group') && styles.bottomButtonPressed
               ]}
-              onPressIn = {() => setReviewView("group")}
+              onPressIn = {() => setBottomView("group")}
             >
               <Text style={styles.bottomHikeButtonText}>
                 Groups
               </Text>
             </Pressable>
           </View>
+          {/* Load view based on which button is selected */}
           {
-            reviewView === 'desc' ? descriptionPage(hikeDetails) :
-            reviewView === 'rev' ? reviewPage(hikeDetails) :
-            reviewView === 'group' ? groupPage(hikeDetails.trail_id) : 
-            reviewView === 'create' ? 
+            bottomView === 'desc' ? descriptionPage(hikeDetails) :
+            bottomView === 'rev' ? reviewPage() :
+            bottomView === 'group' ? groupPage(hikeDetails.trail_id) : 
+            bottomView === 'create' ? 
                 <GroupCreation
                 trail={hikeDetails.trail_id}
-                viewReset={(view:string) => setReviewView(view)}
+                viewReset={(view:string) => setBottomView(view)}
                 dateReset={(id: string) => resetDate(id)}
                 dateConverter={convertToDate}
               /> : 
-            reviewView === 'join' ? joinGroup() :
+            bottomView === 'join' ? joinGroup() :
             null 
           }
         </SafeAreaView>
@@ -979,10 +959,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "black",
   },
-  groupReviewView: {
-    flex: 1,
-    gap: 50,
-  },
   bottomHikeButtonLayout: {
     flexDirection: "row",
     gap: 15,
@@ -1032,18 +1008,18 @@ const styles = StyleSheet.create({
     width: 350,
   },
   reviewItem: {
-    flexDirection: 'row', // Ensures layout is horizontal
-    alignItems: 'center', // Align items properly
-    width: '100%', // Expands width close to full screen
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    width: '100%', 
     marginVertical: 10,
     backgroundColor: 'white',
-    padding: 15, // More spacing inside
-    borderRadius: 15, // Rounder edges for better look
-    shadowColor: '#000', // Optional: Adds a subtle shadow
+    padding: 15, 
+    borderRadius: 15, 
+    shadowColor: '#000', 
     shadowOffset: { width: 5, height: 5 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 5, // Android shadow support
+    elevation: 5, 
   },
   profileImage: {
     width: 50,
@@ -1095,13 +1071,11 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   groupSelect: {
-    padding: 6,
-    margin: 6,
+    padding: 20,
     backgroundColor: "lightblue",
-    marginBottom: 15,
+    marginBottom: 10,
     borderRadius: 25,
     width: 320,
-    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1147,6 +1121,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "Black",
     marginBottom: 2.5,
+    textAlign: "center",
   },
   groupSubText: {
     textAlign: 'center'
@@ -1187,7 +1162,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '80%',
     height: '40%', 
-    // justifyContent: 'center',
     alignItems: 'center',
   },
   closeGroupModal: {
@@ -1249,7 +1223,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '80%',
     height: '25%', 
-    // justifyContent: 'center',
     alignItems: 'center',
   },
   joinGroupHeader: {
@@ -1258,5 +1231,25 @@ const styles = StyleSheet.create({
     color: "black",
     marginBottom: 20,
     textAlign: "center",
+  },
+  emptyGroup: {
+    color: "white",
+    fontSize: 20,
+    alignSelf: "center",
+    top: 120,
+  },
+  descImage: {
+    height: 220,
+    width: 370,
+    borderRadius: 15,
+    marginBottom: 10,
+    alignSelf: 'center',
+  },
+  descText: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "ultralight",
+    padding: 15,
+    textAlign: "center"
   },
 });
