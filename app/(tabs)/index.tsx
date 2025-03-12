@@ -401,7 +401,7 @@ export default function Index() {
         </Text>
         <Text style={styles.groupSubText}>
           {group.group_description} {"\n"}
-          {format(convertToDate(group.start_time), "LLLL d, h a")}
+          {format(convertToDate(group.start_time), "LLLL d, h:mm a")}
         </Text>
       </TouchableOpacity>
     </View>
@@ -421,7 +421,7 @@ export default function Index() {
             <Text style={styles.joinSubText}>
               <Text style={{ fontWeight: 'bold' }}>Name:</Text> {groupDetails.group_name} {"\n"}
               <Text style={{ fontWeight: 'bold' }}>Description:</Text> {groupDetails.group_description} {"\n"}
-              <Text style={{ fontWeight: 'bold' }}>Start Time: </Text>{format(convertToDate(groupDetails.start_time), "LLLL d; h a")} 
+              <Text style={{ fontWeight: 'bold' }}>Start Time: </Text>{format(convertToDate(groupDetails.start_time), "LLLL d; h:mm a")} 
             </Text>
             <TouchableOpacity
               style={styles.closeGroupModal}
