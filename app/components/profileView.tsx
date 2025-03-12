@@ -34,7 +34,7 @@ export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
             <Text style={styles.favoriteHikeSubText}>
                 "No favorite hikes"
             </Text>}
-            <Text style={styles.favoriteHikeTitle}>  Scheduled Hikes </Text>
+            <Text style={styles.scheduledHikeTitle}>  Scheduled Hikes </Text>
             {authState?.scheduledHikes && authState?.scheduledHikes.length > 0 ? 
                 authState.scheduledHikes!.map((group_listing: GroupAttendance, key: number) => (
                 <Text key={key} style={styles.favoriteHikeSubText}>
@@ -117,13 +117,21 @@ const styles = StyleSheet.create({
         width: 280,
         height: "70%",
         borderRadius: 15,
+        padding: 10,
     },
     favoriteHikeTitle: {
         fontWeight: "condensedBold",
         fontSize: 22,
+        marginTop: 10,
     },
     favoriteHikeSubText: {
         textAlign: "center",
         fontSize: 15,
+        marginTop: 4,
+    },
+    scheduledHikeTitle: {
+        fontWeight: "condensedBold",
+        fontSize: 22,
+        marginTop: 20,
     },
 });
