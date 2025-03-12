@@ -1,6 +1,5 @@
 import axios from "axios";
 import { createContext, useContext, useState } from "react";
-//import * as interfaces from "../assets/interfaces";
 
 // API URL
 const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/"
@@ -126,9 +125,7 @@ const LoginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             // Get scheduled hikes from DB
             await axios.get(API_URL + "auth/identity").then(
                 (response) => {
-                    console.log(response);
                     if(response.status == 200){
-                        console.log(response);
                         setLoginState({
                             "accessToken": contextValue.authState.accessToken,
                             "refreshToken": contextValue.authState.refreshToken,

@@ -1,8 +1,7 @@
-import { Text, View, StyleSheet, Button, ImageBackground, TouchableOpacity, Modal, Image, Alert } from "react-native";
-import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from 'react-native-gesture-handler';
-import { createContext, useContext, useState } from "react";
+import { Text, View, StyleSheet, ImageBackground, TouchableOpacity, Modal, Alert } from "react-native";
+import { GestureHandlerRootView, TextInput } from 'react-native-gesture-handler';
+import { useState } from "react";
 import { useForm, Controller } from 'react-hook-form';
-import axios from "axios";
 
 import { useAuth } from "../components/loginState";
 
@@ -31,7 +30,7 @@ export default function Profile() {
   const login = async (email: string, password: string) => {
     const result = await onLogin!(email, password);
     if (result && result.error) {
-      console.error(result.msg);
+      Alert.alert("Error", result.msg);
     }
     return result;
   }
@@ -46,7 +45,7 @@ export default function Profile() {
   const signup = async (username: string, email: string, password: string) => {
     const result = await onRegister!(username, email, password);
     if (result && result.error) {
-      console.error(result.msg);
+      Alert.alert("Error", result.msg);
     } else {
       setSignUpState(false);
       onSubmit({"email": email, "password": password});
@@ -54,33 +53,14 @@ export default function Profile() {
     return result;
   }
 
-  // Bandaid
+  // Login State
   const [loggedIn, loginSuccessful] = useState<boolean>(false);
-
-  // Login function
-  /*async function login(emailInput:string, passwordInput:string): Promise<any> {
-    try{
-      const loginResponse = await axios.post(API_URL + "auth/login", {
-        username: "",
-        email: emailInput,
-        password: passwordInput
-      });
-      return loginResponse
-    }
-    catch(error){
-      console.error(error);
-      return error
-    }
-  }*/
 
   // Logout function
   const logout = () => {
     loginSuccessful(false);
     onLogout!(authState!.favoriteHikes!);
   }
-
-  // console.log("Login State: ");
-  // console.log(loginState);
 
   // Login form
   const { control, handleSubmit, setError, clearErrors, reset, formState: { errors } } = useForm({
