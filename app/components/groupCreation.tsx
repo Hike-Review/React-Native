@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { TextInput } from 'react-native-gesture-handler';
 import Icon from '@expo/vector-icons/FontAwesome';
 import axios from "axios";
-import { format, add, sub, endOfDay, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { useAuth } from "./loginState";
 
 const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
@@ -29,10 +29,12 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
         description: string,
         for_date: Date
     }) => {
+        if(data.group_name == "" || data.description == ""){
+            Alert.alert("Invalid submission", "Please include group name and description.");
+            return
+        }
         try {
             // POST created group
-            console.log(data);
-            console.log(format(selected_date, 'yyyy-MM-dd HH:mm:ss'));
             const groupDB = await axios.post(API_URL + "groups", {
                 trail_id: trail,
                 group_host: authState!.username!,
@@ -41,15 +43,13 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
                 start_time: format(selected_date, 'yyyy-MM-dd HH:mm:ss'),
             }).then(
                 (response) => {
-                    console.log("response: ");
-                    console.log(response.status);
                     if(response.status != 201){
                         // Error
                         Alert.alert('Error', 'Unable to create group');
                         return
                     }
                     // Success
-                    Alert.alert("Success", "Created group" + data.group_name);
+                    Alert.alert("Success", "Created group " + data.group_name);
                     // Re pulling groups attended by user
                     updateGroups!().then(() =>
                     {
@@ -60,7 +60,7 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
             )
           }
           catch (error) {
-            console.log(error);
+            Alert.alert("Error", String(error));
           }
         }
     
@@ -105,11 +105,6 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
                             />
                         )}
                         name="group_name"
-                        rules = {
-                            {
-                            required: true
-                            }
-                        }
                         />
                         <Controller
                             control={control}
@@ -124,13 +119,7 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
                             />
                             )}
                             name="description"
-                            rules = {
-                            {
-                                required: true
-                            }
-                            }
                         /> 
-                        {(errors.group_name || errors.description) && <Text> {"Enter group name and description"} </Text>}
                     </View>
                     <TouchableOpacity
                         style={styles.closeGroupModal}
@@ -220,7 +209,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         width: '80%',
         height: '37%', 
-        // justifyContent: 'center',
         alignItems: 'center',
     },
     createGroupHeader: {

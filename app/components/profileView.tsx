@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { Text, TextInput, View, StyleSheet, TouchableOpacity, ImageBackground, Image, ScrollView } from 'react-native';
+import React from 'react';
+import { Text, View, StyleSheet, TouchableOpacity, ImageBackground, Image, ScrollView } from 'react-native';
 import { useAuth } from './loginState';
-import { useFocusEffect } from 'expo-router';
 
 interface GroupAttendance {
     group_name: string,
@@ -72,9 +70,13 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 5,
+        width: 280,
+        textAlign: "center",
     },
     email: {
         fontSize: 16,
+        width: 280,
+        textAlign: "center",
     },
     logout: {
         position: 'absolute',

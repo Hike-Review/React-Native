@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import axios from 'axios';
 
 interface ModalProps {
   isOpen: boolean;
