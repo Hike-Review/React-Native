@@ -4,6 +4,12 @@ import { Text, TextInput, View, StyleSheet, TouchableOpacity, ImageBackground, I
 import { useAuth } from './loginState';
 import { useFocusEffect } from 'expo-router';
 
+interface GroupAttendance {
+    group_name: string,
+    start_time: string,
+    trail_name: string
+};
+
 export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
     // Get authentication state
     const { authState } = useAuth();
@@ -27,6 +33,16 @@ export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
             )) : 
             <Text style={styles.favoriteHikeSubText}>
                 "No favorite hikes"
+            </Text>}
+            <Text style={styles.scheduledHikeTitle}>  Scheduled Hikes </Text>
+            {authState?.scheduledHikes && authState?.scheduledHikes.length > 0 ? 
+                authState.scheduledHikes!.map((group_listing: GroupAttendance, key: number) => (
+                <Text key={key} style={styles.favoriteHikeSubText}>
+                    Hike at {group_listing.trail_name} with {group_listing.group_name} @ {group_listing.start_time}
+                </Text>
+            )) : 
+            <Text style={styles.favoriteHikeSubText}>
+                "No scheduled hikes"
             </Text>
             }
           </ScrollView>
@@ -41,6 +57,8 @@ export const ProfileViewComponent: React.FC<any> = ({ logout }) => {
       </ImageBackground>
     );
 }
+
+export default ProfileViewComponent;
 
 const styles = StyleSheet.create({
     container: {
@@ -99,13 +117,21 @@ const styles = StyleSheet.create({
         width: 280,
         height: "70%",
         borderRadius: 15,
+        padding: 10,
     },
     favoriteHikeTitle: {
         fontWeight: "condensedBold",
         fontSize: 22,
+        marginTop: 10,
     },
     favoriteHikeSubText: {
         textAlign: "center",
         fontSize: 15,
+        marginTop: 4,
+    },
+    scheduledHikeTitle: {
+        fontWeight: "condensedBold",
+        fontSize: 22,
+        marginTop: 20,
     },
 });

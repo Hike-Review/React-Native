@@ -12,7 +12,7 @@ const API_URL = "https://hikereview-flaskapp-546900130284.us-west1.run.app/";
 
 export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, dateConverter }) => {
     // For login context
-    const { authState } = useAuth();
+    const { authState, updateGroups } = useAuth();
 
     // Group Creation Form
     const { control, handleSubmit, setError, clearErrors, reset, formState: { errors } } = useForm({
@@ -50,8 +50,12 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
                     }
                     // Success
                     Alert.alert("Success", "Created group" + data.group_name);
-                    viewReset("group");
-                    dateReset(trail);
+                    // Re pulling groups attended by user
+                    updateGroups!().then(() =>
+                    {
+                        viewReset("group");
+                        dateReset(trail);
+                    });
                 }
             )
           }
@@ -175,6 +179,8 @@ export const GroupCreation: React.FC<any> = ({ trail, viewReset, dateReset, date
     )
 }
 
+export default GroupCreation;
+
 const styles = StyleSheet.create({
     contentContainer: {
         backgroundColor: "black",
@@ -209,10 +215,11 @@ const styles = StyleSheet.create({
     },
     createGroupModal: {
         backgroundColor: 'white',
+        top: 70,
         padding: 20,
         borderRadius: 20,
         width: '80%',
-        height: '40%', 
+        height: '37%', 
         // justifyContent: 'center',
         alignItems: 'center',
     },
@@ -233,17 +240,15 @@ const styles = StyleSheet.create({
     },
     datePicker: {
         right: 5,
-        top: 100,
+        top: 78,
         borderRadius: 17,
     },
     form: {
         gap: 10,
-        width: '65%',
+        width: '85%',
         height: "15%",
     },
     buttonlayout: {
-        flexDirection: "row",
-        gap: 10,
         height: "10%",
         justifyContent: 'center',
         alignItems: 'center',
@@ -255,6 +260,7 @@ const styles = StyleSheet.create({
         width: "120%",
         height: "65%",
         justifyContent: 'center',
+        marginBottom: 35,
     },
     buttontext: {
         color: "white",

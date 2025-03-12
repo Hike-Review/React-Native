@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 5,
+    borderRadius: 20,
     minWidth: 300,
   },
   title: {

@@ -104,6 +104,8 @@ export const SignUpComponent: React.FC<any> = ({ signUp, close }) => {
     );
 }
 
+export default SignUpComponent;
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
