@@ -1,5 +1,6 @@
-[!NOTE]
-This project is designed to work with the Expo Go iOS App.
+>[!NOTE]
+>This project is designed to work with the Expo Go iOS App.
+
 # Hike Review
 
 Product Owner: Andres Sanchez,
