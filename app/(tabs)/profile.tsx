@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, Button, ImageBackground, TouchableOpacity, Modal, Image } from "react-native";
+import { Text, View, StyleSheet, Button, ImageBackground, TouchableOpacity, Modal, Image, Alert } from "react-native";
 import { GestureDetector, GestureHandlerRootView, RectButton, TextInput } from 'react-native-gesture-handler';
 import { createContext, useContext, useState } from "react";
 import { useForm, Controller } from 'react-hook-form';
@@ -79,7 +79,7 @@ export default function Profile() {
     onLogout!(authState!.favoriteHikes!);
   }
 
-  //console.log("Login State: ");
+  // console.log("Login State: ");
   // console.log(loginState);
 
   // Login form
@@ -101,8 +101,7 @@ export default function Profile() {
           loginSuccessful(true);
         }
         else{
-          console.error("login failed");
-          setError("password", {type: 'manual'});
+          Alert.alert("Login Failed", "Invalid credentials");
         }
       }
     );
@@ -193,8 +192,7 @@ export default function Profile() {
               }
             }
           /> 
-            {(errors.email) && <Text style={styles.errorText}> {"Please enter your email and password"} </Text>}
-            {(errors.password) && <Text style={styles.errorText}> {"Invalid Credentials"} </Text>}
+            {(errors.email || errors.password) && <Text style={styles.errorText}> {"Please enter your email and password"} </Text>}
         </View>
         <View style = {styles.buttonlayout}> 
           <TouchableOpacity 
