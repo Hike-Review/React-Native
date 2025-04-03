@@ -254,6 +254,7 @@ export default function Index() {
     }
     // Reset Hike display state
     setHike(null);
+    
     setPathView([]);
     // Expose Markers
     setMarkerState(true);
